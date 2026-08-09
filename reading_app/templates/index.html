@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Reader</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <div class="toolbar">
+    <select id="siteSelect"></select>
+    <div class="center-toc">
+      <select id="tocSelect"></select>
+    </div>
+    <label>Font size: <input id="fontSize" type="number" value="20" min="8" max="80"></label>
+    <label>Line height: <input id="lineHeight" type="range" min="1.2" max="3" step="0.05" value="1.8"></label>
+    <label>Width: <input id="readWidth" type="range" min="400" max="1200" value="800"></label>
+    <label>Soft font: <input id="softFont" type="checkbox" checked></label>
+    <label>Dark: <input id="themeToggle" type="checkbox"></label>
+  </div>
+
+  <main id="readerWrapper">
+    <article id="chapterTitle"></article>
+    <div id="chapterContent" tabindex="0"></div>
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
