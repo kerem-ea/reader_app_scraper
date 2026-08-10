@@ -9,12 +9,22 @@
   <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body class="dark soft-font">
-  <header class="titlebar pywebview-drag-region">
+  <!-- Top Dedicated Window Titlebar (Drag Region when restored) -->
+  <div class="window-bar pywebview-drag-region">
     <div class="brand">
       <img src="/static/weaver.png" alt="Logo" class="app-logo">
-      <span class="app-title">WEAVER</span>
+      <span class="app-title">WEAVER READER</span>
     </div>
 
+    <div class="window-controls">
+      <button id="minimizeBtn" class="win-btn" title="Minimize">—</button>
+      <button id="maximizeBtn" class="win-btn" title="Maximize/Restore">❐</button>
+      <button id="closeBtn" class="win-btn win-close" title="Close">✕</button>
+    </div>
+  </div>
+
+  <!-- Separate Control Toolbar (100% outside window drag zone) -->
+  <div class="toolbar-bar">
     <div class="selectors">
       <select id="siteSelect" class="styled-select" title="Select Novel"></select>
       <select id="tocSelect" class="styled-select" title="Select Chapter"></select>
@@ -45,16 +55,11 @@
       </div>
     </div>
 
-    <div class="window-controls">
-      <button id="markReadBtn" class="btn-accent" title="Save Progress">Save</button>
-      <button id="minimizeBtn" class="win-btn" title="Minimize">—</button>
-      <button id="maximizeBtn" class="win-btn" title="Maximize/Restore">❐</button>
-      <button id="closeBtn" class="win-btn win-close" title="Close">✕</button>
-    </div>
-  </header>
+    <button id="markReadBtn" class="btn-accent" title="Save Progress">Save</button>
+  </div>
 
-  <div id="progressTrack">
-    <div id="progressBar"></div>
+  <div id="progressTrack" class="no-drag" title="Click or drag to jump to position">
+    <div id="progressBar" class="no-drag"></div>
   </div>
 
   <main id="readerContainer">
@@ -90,4 +95,3 @@
   <script src="/static/app.js"></script>
 </body>
 </html>
-

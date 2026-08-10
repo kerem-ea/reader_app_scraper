@@ -60,9 +60,9 @@ logs/
 # App-specific
 last_read.txt
 reading_app/last_read.txt
-# Keep the data directory structure but ignore scraped content
-scraper/data/*/
+# Keep the data directory structure but ignore scraped content except shadow-slave
+scraper/data/*
 !scraper/data/.gitkeep
+!scraper/data/shadow-slave/
 # Built executable
-ReaderApp.exe
-reader.exe
+reader.exe

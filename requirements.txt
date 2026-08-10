@@ -1,6 +1,6 @@
 Flask>=2.0
 selectolax
 curl-cffi
-camoufox
+camoufox[geoip]
 pyinstaller
 pywebview

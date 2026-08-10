@@ -42,23 +42,22 @@ html, body {
   user-select: text;
 }
 
-/* Titlebar */
-.titlebar {
+/* Top Window Bar (Dedicated Drag Area) */
+.window-bar {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
-  height: 52px;
+  height: 34px;
   background-color: var(--panel);
   border-bottom: 1px solid var(--panel-border);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 12px;
-  gap: 12px;
-  z-index: 1000;
-  box-shadow: 0 2px 10px var(--shadow);
+  padding: 0 10px;
+  z-index: 1001;
   -webkit-app-region: drag;
+  user-select: none;
 }
 
 .brand {
@@ -69,16 +68,68 @@ html, body {
 }
 
 .app-logo {
-  width: 26px;
-  height: 26px;
+  width: 20px;
+  height: 20px;
   object-fit: contain;
 }
 
 .app-title {
   font-weight: 800;
-  font-size: 14px;
+  font-size: 12px;
   letter-spacing: 1.2px;
   color: var(--accent);
+}
+
+.window-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  -webkit-app-region: no-drag;
+}
+
+.win-btn {
+  width: 28px;
+  height: 24px;
+  background: transparent;
+  border: none;
+  color: var(--text);
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.15s;
+  -webkit-app-region: no-drag;
+}
+
+.win-btn:hover {
+  background-color: var(--accent-light);
+}
+
+.win-close:hover {
+  background-color: #ef4444;
+  color: #ffffff;
+}
+
+/* Control Toolbar - 100% NON-DRAGGABLE */
+.toolbar-bar {
+  position: fixed;
+  top: 34px;
+  left: 0;
+  right: 0;
+  height: 44px;
+  background-color: var(--panel);
+  border-bottom: 1px solid var(--panel-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  gap: 12px;
+  z-index: 1000;
+  box-shadow: 0 2px 10px var(--shadow);
+  -webkit-app-region: no-drag !important;
 }
 
 .selectors {
@@ -92,7 +143,7 @@ html, body {
 .styled-select {
   flex: 1;
   min-width: 100px;
-  height: 32px;
+  height: 30px;
   background-color: var(--bg);
   color: var(--text);
   border: 1px solid var(--panel-border);
@@ -104,6 +155,7 @@ html, body {
   text-overflow: ellipsis;
   white-space: nowrap;
   overflow: hidden;
+  -webkit-app-region: no-drag;
 }
 
 .styled-select:focus {
@@ -124,10 +176,12 @@ html, body {
   font-size: 12px;
   color: var(--muted);
   white-space: nowrap;
+  -webkit-app-region: no-drag;
 }
 
 .control-group label {
   font-weight: 500;
+  -webkit-app-region: no-drag;
 }
 
 input[type="range"] {
@@ -135,6 +189,7 @@ input[type="range"] {
   height: 4px;
   accent-color: var(--accent);
   cursor: pointer;
+  -webkit-app-region: no-drag;
 }
 
 .toggle-group {
@@ -148,18 +203,12 @@ input[type="range"] {
   gap: 4px;
   cursor: pointer;
   font-size: 12px;
+  -webkit-app-region: no-drag;
 }
 
 .checkbox-label input {
   accent-color: var(--accent);
   cursor: pointer;
-}
-
-.window-controls {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  flex-shrink: 0;
   -webkit-app-region: no-drag;
 }
 
@@ -173,59 +222,58 @@ input[type="range"] {
   font-weight: 600;
   cursor: pointer;
   transition: background-color 0.2s;
-  margin-right: 6px;
+  margin-right: 2px;
+  -webkit-app-region: no-drag;
 }
 
 .btn-accent:hover {
   background-color: var(--accent-hover);
 }
 
-.win-btn {
-  width: 32px;
-  height: 32px;
-  background: transparent;
-  border: none;
-  color: var(--text);
-  font-size: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.win-btn:hover {
-  background-color: var(--accent-light);
-}
-
-.win-close:hover {
-  background-color: #ef4444;
-  color: #ffffff;
-}
-
 /* Progress Track */
 #progressTrack {
   position: fixed;
-  top: 52px;
+  top: 78px;
   left: 0;
   right: 0;
-  height: 3px;
+  height: 6px;
   background-color: var(--track-bg);
   z-index: 999;
+  cursor: pointer;
+  -webkit-app-region: no-drag !important;
+  transition: height 0.15s ease;
+}
+
+#progressTrack:hover {
+  height: 9px;
 }
 
 #progressBar {
   height: 100%;
   width: 0%;
   background-color: var(--accent);
-  transition: width 0.1s ease-out;
+  transition: width 0.05s ease-out;
+  pointer-events: none;
+  -webkit-app-region: no-drag !important;
+}
+
+.no-drag,
+.selectors,
+.toolbar-controls,
+.window-controls,
+.styled-select,
+.control-group,
+input[type="range"],
+.checkbox-label,
+.win-btn,
+.btn-accent {
+  -webkit-app-region: no-drag !important;
 }
 
 /* Main Container & Scroll */
 #readerContainer {
   position: fixed;
-  top: 55px;
+  top: 84px;
   bottom: 48px;
   left: 0;
   right: 0;

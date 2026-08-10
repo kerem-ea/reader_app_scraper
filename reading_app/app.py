@@ -236,7 +236,7 @@ def get_current_screen(win):
 class Api:
     def __init__(self):
         self._window = None
-        self._is_maximized = True
+        self._is_maximized = False
         self._restored_bounds = None
 
     def set_window(self, window):
@@ -280,6 +280,10 @@ class Api:
                         self._window.move(rx, ry)
                         self._window.resize(rw, rh)
                 self._is_maximized = False
+                try:
+                    self._window.evaluate_js('if (window.setWindowMaximizedState) window.setWindowMaximizedState(false);')
+                except Exception:
+                    pass
             else:
                 # Save current floating bounds before maximizing
                 if self._window.width > 200 and self._window.height > 200:
@@ -290,6 +294,10 @@ class Api:
                     self._window.move(scr.x, scr.y)
                     self._window.resize(scr.width, scr.height - 40)
                 self._is_maximized = True
+                try:
+                    self._window.evaluate_js('if (window.setWindowMaximizedState) window.setWindowMaximizedState(true);')
+                except Exception:
+                    pass
         except Exception as e:
             print("Maximize error:", e)
 

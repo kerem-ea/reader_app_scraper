@@ -30,7 +30,85 @@ document.addEventListener('DOMContentLoaded', () => {
   themeToggle.checked = true
   applySettings()
 
-  // Track Reading Scroll Progress
+  // Window Maximize State & Drag Blocking
+  window.isMaximized = true
+  window.setWindowMaximizedState = (isMaximized) => {
+    window.isMaximized = !!isMaximized
+    const windowBar = $('.window-bar')
+    if (windowBar) {
+      if (window.isMaximized) {
+        windowBar.classList.remove('pywebview-drag-region')
+        windowBar.style.webkitAppRegion = 'no-drag'
+      } else {
+        windowBar.classList.add('pywebview-drag-region')
+        windowBar.style.webkitAppRegion = 'drag'
+      }
+    }
+  }
+
+  function setupDragBlocker() {
+    if (window.pywebview && window.pywebview._jsApiCallback) {
+      const origCallback = window.pywebview._jsApiCallback
+      window.pywebview._jsApiCallback = function(funcName, params, id) {
+        if (funcName === 'pywebviewMoveWindow' && window.isMaximized) {
+          return
+        }
+        return origCallback.apply(this, arguments)
+      }
+    } else {
+      setTimeout(setupDragBlocker, 100)
+    }
+  }
+  setupDragBlocker()
+
+  // Prevent pywebview window dragging when maximized or when interacting with toolbar/controls
+  window.addEventListener('mousedown', (e) => {
+    const isInteractive = e.target.closest('input, select, button, label, #progressTrack, #progressBar, .toolbar-bar, .toolbar-controls, .selectors, .window-controls, .no-drag')
+    if (isInteractive) {
+      e.stopPropagation()
+    } else if (window.isMaximized) {
+      const isWindowBar = e.target.closest('.window-bar')
+      if (isWindowBar) {
+        e.stopPropagation()
+      }
+    }
+  }, true)
+
+  // Track Reading Scroll Progress & Interactive Seeking
+  const progressTrack = $('#progressTrack')
+  let isDraggingProgress = false
+
+  function seekProgress(e) {
+    if (!progressTrack || !readerContainer) return
+    const rect = progressTrack.getBoundingClientRect()
+    const clickX = e.clientX - rect.left
+    const width = rect.width
+    if (width <= 0) return
+    const pct = Math.max(0, Math.min(1, clickX / width))
+    const totalHeight = readerContainer.scrollHeight - readerContainer.clientHeight
+    if (totalHeight > 0) {
+      readerContainer.scrollTop = pct * totalHeight
+    }
+  }
+
+  if (progressTrack) {
+    progressTrack.addEventListener('mousedown', (e) => {
+      e.stopPropagation()
+      isDraggingProgress = true
+      seekProgress(e)
+    })
+
+    window.addEventListener('mousemove', (e) => {
+      if (isDraggingProgress) {
+        seekProgress(e)
+      }
+    })
+
+    window.addEventListener('mouseup', () => {
+      isDraggingProgress = false
+    })
+  }
+
   readerContainer.onscroll = () => {
     const totalHeight = readerContainer.scrollHeight - readerContainer.clientHeight
     if (totalHeight <= 0) {
@@ -179,9 +257,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Window control buttons & titlebar double-click
-  const titlebar = $('.titlebar')
-  if (titlebar) {
-    titlebar.ondblclick = (e) => {
+  const windowBar = $('.window-bar')
+  if (windowBar) {
+    windowBar.ondblclick = (e) => {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'BUTTON') return
       if (window.pywebview?.api?.maximize) {
         window.pywebview.api.maximize()
