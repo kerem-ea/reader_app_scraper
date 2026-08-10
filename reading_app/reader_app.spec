@@ -1,11 +1,15 @@
+from PyInstaller.utils.hooks import collect_all
+
+wv_datas, wv_binaries, wv_hiddenimports = collect_all('webview')
+
 a = Analysis(
     ['app.py'],
     pathex=[],
-    binaries=[],
+    binaries=wv_binaries,
     datas=[
         ('templates', 'templates'),
         ('static', 'static'),
-    ],
+    ] + wv_datas,
     hiddenimports=[
         'flask',
         'jinja2',
@@ -13,13 +17,13 @@ a = Analysis(
         'werkzeug',
         'itsdangerous',
         'click',
-        'webview',
-        'pywebview',
-    ],
+        'clr',
+        'pythonnet',
+    ] + wv_hiddenimports,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=[],
+    excludes=['webview.platforms.android'],
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
     cipher=None,
@@ -42,11 +46,12 @@ exe = EXE(
     upx=True,
     upx_exclude=[],
     runtime_tmpdir=None,
-    console=True,
+    console=False,
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=None,  # Add path to .ico file if you want a custom icon
+    icon=None,
 )
+

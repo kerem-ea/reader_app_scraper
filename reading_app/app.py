@@ -139,5 +139,5 @@ if __name__ == '__main__':
                 pass
             os._exit(0)
     
-    webview.create_window('Reader App', 'http://127.0.0.1:5000', fullscreen=True, js_api=Api())
+    webview.create_window('Reader App', 'http://127.0.0.1:5000', width=1200, height=800, resizable=True, js_api=Api())
     webview.start()
