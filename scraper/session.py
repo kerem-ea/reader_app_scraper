@@ -24,6 +24,7 @@ async def wait_for_challenge_clear(
     timeout: int = 60,
     extra_wait_on_timeout: int = 0,
     log_prefix: str | None = None,
+    reload: bool = True,
 ) -> str:
     elapsed = 0.0
     backoff = 1.0
@@ -42,10 +43,11 @@ async def wait_for_challenge_clear(
         elapsed += backoff
         backoff = min(backoff + 0.5, 2.0)
 
-        try:
-            await page.reload(wait_until="domcontentloaded", timeout=60000)
-        except Exception:
-            pass
+        if reload:
+            try:
+                await page.reload(wait_until="domcontentloaded", timeout=60000)
+            except Exception:
+                pass
 
     if extra_wait_on_timeout:
         await page.wait_for_timeout(extra_wait_on_timeout)

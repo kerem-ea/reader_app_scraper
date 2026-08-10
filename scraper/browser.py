@@ -33,19 +33,32 @@ async def fetch_one_browser(
             "challenge",
         ]
         candidates = await page.query_selector_all("button, a, input[type=submit]")
-        for element in candidates:
-            try:
-                text = await page.evaluate(
-                    "el => (el.innerText || el.value || '').toLowerCase().trim()",
-                    element,
-                )
-            except Exception:
-                continue
+        if not candidates:
+            return False
+
+        try:
+            texts = await page.evaluate(
+                "els => els.map(el => (el.innerText || el.value || '').toLowerCase().trim())",
+                candidates,
+            )
+        except Exception:
+            texts = []
+            for element in candidates:
+                try:
+                    text = await page.evaluate(
+                        "el => (el.innerText || el.value || '').toLowerCase().trim()",
+                        element,
+                    )
+                except Exception:
+                    text = ""
+                texts.append(text)
+
+        for element, text in zip(candidates, texts):
             if any(keyword in text for keyword in click_keywords):
                 print(f"[browser] {chap_id} trying click on challenge element: {text}")
                 try:
                     await element.click()
-                    await page.wait_for_timeout(2000)
+                    await page.wait_for_timeout(1000)
                     return True
                 except Exception as exc:
                     print(f"[browser] {chap_id} challenge click error: {exc}")
@@ -56,29 +69,34 @@ async def fetch_one_browser(
             print(f"[browser] {chap_id} {attempt}/{settings.max_retries}")
             await page.goto(url, wait_until="domcontentloaded", timeout=REQUEST_TIMEOUT * 1000)
             await page.wait_for_timeout(random.randint(250, 700))
-            html = await wait_for_challenge_clear(page, timeout=30, extra_wait_on_timeout=2500)
+
+            html = await wait_for_challenge_clear(page, timeout=5, extra_wait_on_timeout=0, reload=False)
 
             if looks_like_challenge(0, html):
                 print(f"[cf] {chap_id} browser blocked, attempt {attempt}/{settings.max_retries}")
                 clicked = await try_click_challenge_button(page)
                 if clicked:
+                    html = await wait_for_challenge_clear(page, timeout=10, extra_wait_on_timeout=1000, reload=False)
+
+                if looks_like_challenge(0, html):
                     html = await wait_for_challenge_clear(page, timeout=20, extra_wait_on_timeout=1500)
-                    if not looks_like_challenge(0, html):
-                        text, wc = extract_content(html)
-                        if wc > 50:
-                            await record_success(
-                                chapter_number,
-                                url,
-                                text,
-                                wc,
-                                writer,
-                                stats,
-                                total,
-                                chapter_titles,
-                                source_html=html,
-                            )
-                            await asyncio.sleep(random.uniform(settings.min_delay, settings.delay_between))
-                            return page_ok
+
+                if not looks_like_challenge(0, html):
+                    text, wc = extract_content(html)
+                    if wc > 50:
+                        await record_success(
+                            chapter_number,
+                            url,
+                            text,
+                            wc,
+                            writer,
+                            stats,
+                            total,
+                            chapter_titles,
+                            source_html=html,
+                        )
+                        await asyncio.sleep(random.uniform(settings.min_delay, settings.delay_between))
+                        return page_ok
                 await asyncio.sleep(random.uniform(*settings.challenge_wait))
                 try:
                     await page.close()
