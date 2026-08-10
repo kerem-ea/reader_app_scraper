@@ -64,6 +64,3 @@ scraper/data/*/
 !scraper/data/.gitkeep
 # Built executable
 ReaderApp.exe
-
-# Devin
-.devin/

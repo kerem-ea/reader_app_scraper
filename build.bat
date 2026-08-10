@@ -1,6 +1,6 @@
 @echo off
-set PATH=C:\Users\lost~1\AppData\Local\Programs\Python\Python314\Scripts;%PATH%
+set PATH=C:\Program Files\Python310;C:\Program Files\Python310\Scripts;%APPDATA%\Python\Python310\Scripts;%PATH%
 cd reading_app
 pyinstaller reader_app.spec
 cd ..
-copy reading_app\dist\ReaderApp.exe ReaderApp.exe
+copy /Y reading_app\dist\ReaderApp.exe ReaderApp.exe
