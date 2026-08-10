@@ -127,7 +127,7 @@ pyinstaller reader_app.spec
 
    ```powershell
    cd ..
-   Copy-Item reading_app\dist\ReaderApp.exe reader.exe
+   Copy-Item .\reading_app\dist\reader.exe .\reader.exe
    ```
    
 6. Run the executable from the project root:
