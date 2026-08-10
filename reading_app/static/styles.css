@@ -36,6 +36,10 @@ html, body {
   align-items: center;
   z-index: 1000;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  -webkit-app-region: drag;
+}
+.controls, select, input, button {
+  -webkit-app-region: no-drag;
 }
 .controls {
   display: flex;
@@ -81,20 +85,26 @@ input[type="checkbox"] {
   line-height: 1;
 }
 #reader {
-  padding: 90px 24px 24px;
-  max-width: 900px;
+  padding: 90px 24px 40px;
+  width: 100%;
   margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 #chapterTitle {
   font-size: 24px;
   font-weight: 700;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
   text-align: center;
+  width: 100%;
 }
 #chapterContent {
   font-size: 20px;
   line-height: 1.8;
   white-space: pre-wrap;
+  width: 100%;
+  margin: 0 auto;
 }
 .soft-font #chapterContent {
   font-family: Georgia, serif;

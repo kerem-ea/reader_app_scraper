@@ -9,6 +9,7 @@ a = Analysis(
     datas=[
         ('templates', 'templates'),
         ('static', 'static'),
+        ('weaver.ico', '.'),
     ] + wv_datas,
     hiddenimports=[
         'flask',
@@ -52,6 +53,6 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=None,
+    icon='weaver.ico',
 )
 
