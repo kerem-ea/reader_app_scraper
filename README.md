@@ -122,14 +122,17 @@ pyinstaller reader_app.spec
 
 4. The executable will be created in `reading_app/dist/ReaderApp.exe`
 
-5. **Important**: Copy the executable to the project root:
-   ```powershell
-   Copy-Item reading_app\dist\ReaderApp.exe ReaderApp.exe
-   ```
 
+5. **Important**: Copy the generated executable to the project root and rename it to `reader.exe`:
+
+   ```powershell
+   cd ..
+   Copy-Item reading_app\dist\ReaderApp.exe reader.exe
+   ```
+   
 6. Run the executable from the project root:
    ```powershell
-   .\ReaderApp.exe
+   .\reader.exe
    ```
 
 ### Build Details
