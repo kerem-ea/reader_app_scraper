@@ -3,4 +3,5 @@ set PATH=C:\Program Files\Python310;C:\Program Files\Python310\Scripts;%APPDATA%
 cd reading_app
 pyinstaller reader_app.spec
 cd ..
-copy /Y reading_app\dist\ReaderApp.exe ReaderApp.exe
+copy /Y reading_app\dist\reader.exe reader.exe
+

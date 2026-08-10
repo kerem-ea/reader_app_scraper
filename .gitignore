@@ -58,9 +58,11 @@ Desktop.ini
 logs/
 
 # App-specific
+last_read.txt
 reading_app/last_read.txt
 # Keep the data directory structure but ignore scraped content
 scraper/data/*/
 !scraper/data/.gitkeep
 # Built executable
 ReaderApp.exe
+reader.exe
