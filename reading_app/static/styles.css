@@ -1,61 +1,101 @@
-:root{
-  --bg:#fff;
-  --text:#111;
-  --muted:#666;
-  --panel:rgba(0,0,0,0.03);
-  --border:rgba(0,0,0,0.1);
+:root {
+  --bg: #ffffff;
+  --text: #111111;
+  --muted: #666666;
+  --panel: #ffffff;
+  --border: #cccccc;
 }
-html,body{height:100%}
-body{
-  background:var(--bg);
-  color:var(--text);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
-  margin:0;
-  min-height:100vh;
-  transition:background 0.3s,color 0.3s;
+.dark {
+  --bg: #0b0b0f;
+  --text: #e8eef6;
+  --muted: #99a0b0;
+  --panel: #1a1a20;
+  --border: #444444;
 }
-.toolbar{
-  display:flex;
-  gap:8px;
-  align-items:center;
-  padding:8px;
-  background:var(--panel);
-  border-bottom:1px solid var(--border);
-  flex-wrap:wrap;
-  transition:background 0.3s,border-color 0.3s;
+* {
+  box-sizing: border-box;
 }
-.center-toc{margin-left:auto;margin-right:auto}
-.toolbar select,.toolbar input,.toolbar button{
-  font-size:14px;
-  padding:6px;
-  background:var(--bg);
-  color:var(--text);
-  border:1px solid var(--border);
-  border-radius:4px;
-  transition:background 0.3s,color 0.3s,border-color 0.3s;
+html, body {
+  margin: 0;
+  font-family: system-ui, -apple-system, sans-serif;
+  background-color: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
 }
-.toolbar select:hover,.toolbar input:hover,.toolbar button:hover{
-  border-color:var(--muted);
+.bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  background-color: var(--panel);
+  border-bottom: 2px solid var(--border);
+  padding: 8px 16px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  z-index: 1000;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
-.toolbar button{
-  cursor:pointer;
+.controls {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  margin-left: auto;
 }
-.toolbar button:active{
-  transform:scale(0.98);
+.controls span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  line-height: 1;
+  white-space: nowrap;
 }
-#readerWrapper{display:flex;flex-direction:column;align-items:center;padding:24px}
-#chapterContent{max-width:800px;width:100%;text-align:left;font-size:20px;line-height:1.8;padding:24px;border-radius:8px;margin:0 auto}
-#chapterTitle{max-width:800px;width:100%;font-weight:700;font-size:20px;margin-bottom:12px;text-align:center}
-
-.soft-font #chapterContent{font-family: 'Georgia', 'Times New Roman', serif}
-
-.dark{
-  --bg:#0b0b0f;
-  --text:#e8eef6;
-  --muted:#99a0b0;
-  --panel:rgba(255,255,255,0.03);
-  --border:rgba(255,255,255,0.1);
-  color-scheme:dark;
+select, input:not([type="range"]), button {
+  font-size: 13px;
+  padding: 4px 8px;
+  background-color: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  line-height: 1.2;
 }
-
-@media (max-width:700px){#chapterContent{padding:16px}}
+input[type="range"] {
+  padding: 0;
+  margin: 0;
+  height: 16px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  vertical-align: middle;
+}
+input[type="checkbox"] {
+  margin: 0;
+  cursor: pointer;
+  vertical-align: middle;
+}
+#closeBtn {
+  font-size: 20px;
+  padding: 0 8px;
+  cursor: pointer;
+  line-height: 1;
+}
+#reader {
+  padding: 90px 24px 24px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+#chapterTitle {
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 16px;
+  text-align: center;
+}
+#chapterContent {
+  font-size: 20px;
+  line-height: 1.8;
+  white-space: pre-wrap;
+}
+.soft-font #chapterContent {
+  font-family: Georgia, serif;
+}

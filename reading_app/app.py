@@ -1,11 +1,18 @@
 from flask import Flask, jsonify, request, send_from_directory, render_template, abort
 import os
+import sys
 import json
 import glob
+import webview
+import time
+import threading
 
 HERE = os.path.abspath(os.path.dirname(__file__))
-DATA_ROOT = os.path.abspath(os.path.join(HERE, '..', 'scraper', 'data'))
-PROGRESS_FILE = os.path.join(HERE, 'last_read.txt')
+if getattr(sys, 'frozen', False):
+    HERE = os.path.dirname(sys.executable)
+
+DATA_ROOT = os.path.abspath(os.path.join(HERE, 'scraper', 'data'))
+PROGRESS_FILE = os.path.join(HERE, 'reading_app', 'last_read.txt')
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
 
@@ -49,7 +56,6 @@ def api_chapters():
         abort(404)
     with open(chapters_file, 'r', encoding='utf-8') as f:
         data = json.load(f)
-    # data is a dict mapping keys to chapter objects
     chapters = list(data.values())
     chapters.sort(key=lambda c: c.get('chapter_number') or 0)
     out = [{'number': c.get('chapter_number'), 'title': c.get('title'), 'id': c.get('id')} for c in chapters]
@@ -72,7 +78,6 @@ def api_chapter():
         abort(404)
     with open(chapters_file, 'r', encoding='utf-8') as f:
         data = json.load(f)
-    # find chapter by chapter_number
     for ch in data.values():
         if ch.get('chapter_number') == num:
             return jsonify({'number': ch.get('chapter_number'), 'title': ch.get('title'), 'text': ch.get('text')})
@@ -81,7 +86,6 @@ def api_chapter():
 
 @app.route('/api/progress', methods=['GET'])
 def api_progress_get():
-    """Return the last-read {site, chapter}. Both are null if nothing's been saved yet."""
     if not os.path.isfile(PROGRESS_FILE):
         return jsonify({'site': None, 'chapter': None})
 
@@ -102,7 +106,6 @@ def api_progress_get():
 
 @app.route('/api/progress', methods=['POST'])
 def api_progress_post():
-    """Save the current {site, chapter} as two lines in last_read.txt."""
     data = request.get_json(silent=True) or {}
     site = data.get('site')
     chapter = data.get('chapter')
@@ -118,4 +121,23 @@ def api_progress_post():
 
 if __name__ == '__main__':
     print('Data root:', DATA_ROOT)
-    app.run(debug=True)
+    
+    def start_flask():
+        app.run(debug=False, use_reloader=False, port=5000)
+    
+    flask_thread = threading.Thread(target=start_flask, daemon=True)
+    flask_thread.start()
+    
+    time.sleep(2)
+    
+    class Api:
+        def close(self):
+            try:
+                if webview.windows:
+                    webview.windows[0].destroy()
+            except Exception:
+                pass
+            os._exit(0)
+    
+    webview.create_window('Reader App', 'http://127.0.0.1:5000', fullscreen=True, js_api=Api())
+    webview.start()
