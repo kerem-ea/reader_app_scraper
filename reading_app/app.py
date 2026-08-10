@@ -5,6 +5,7 @@ import glob
 
 HERE = os.path.abspath(os.path.dirname(__file__))
 DATA_ROOT = os.path.abspath(os.path.join(HERE, '..', 'scraper', 'data'))
+PROGRESS_FILE = os.path.join(HERE, 'last_read.txt')
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
 
@@ -76,6 +77,43 @@ def api_chapter():
         if ch.get('chapter_number') == num:
             return jsonify({'number': ch.get('chapter_number'), 'title': ch.get('title'), 'text': ch.get('text')})
     abort(404)
+
+
+@app.route('/api/progress', methods=['GET'])
+def api_progress_get():
+    """Return the last-read {site, chapter}. Both are null if nothing's been saved yet."""
+    if not os.path.isfile(PROGRESS_FILE):
+        return jsonify({'site': None, 'chapter': None})
+
+    with open(PROGRESS_FILE, 'r', encoding='utf-8') as f:
+        lines = f.read().splitlines()
+
+    site = lines[0].strip() if len(lines) > 0 and lines[0].strip() else None
+
+    chapter = None
+    if len(lines) > 1 and lines[1].strip():
+        try:
+            chapter = int(lines[1].strip())
+        except ValueError:
+            chapter = None
+
+    return jsonify({'site': site, 'chapter': chapter})
+
+
+@app.route('/api/progress', methods=['POST'])
+def api_progress_post():
+    """Save the current {site, chapter} as two lines in last_read.txt."""
+    data = request.get_json(silent=True) or {}
+    site = data.get('site')
+    chapter = data.get('chapter')
+
+    if not site or chapter is None:
+        abort(400)
+
+    with open(PROGRESS_FILE, 'w', encoding='utf-8') as f:
+        f.write(f'{site}\n{chapter}\n')
+
+    return jsonify({'ok': True})
 
 
 if __name__ == '__main__':
