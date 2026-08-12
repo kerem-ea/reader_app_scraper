@@ -38,6 +38,8 @@ reading_app/last_read.txt
 # Scraped data
 data/*
 !data/.gitkeep
+!data/shadow-slave/
+!data/shadow-slave/*
 scraper/data/*
 !scraper/data/.gitkeep
 
