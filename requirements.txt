@@ -4,3 +4,5 @@ curl-cffi
 camoufox[geoip]
 pyinstaller
 pywebview
+ebooklib
+pillow

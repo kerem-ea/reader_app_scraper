@@ -28,41 +28,18 @@ ENV/
 env.bak/
 venv.bak/
 
-# Environment variables
-.env
-.env.local
-.env.*.local
-
-# IDEs
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-.project
-.pydevproject
-.settings/
-
-# OS
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
-Desktop.ini
-
-# Logs
-*.log
-logs/
+# EPUB files
+*.epub
 
 # App-specific
 last_read.txt
 reading_app/last_read.txt
+
+# Scraped data
 # Keep the data directory structure but ignore scraped content except shadow-slave
 scraper/data/*
 !scraper/data/.gitkeep
 !scraper/data/shadow-slave/
+
 # Built executable
 reader.exe
