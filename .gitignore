@@ -39,7 +39,9 @@ reading_app/last_read.txt
 data/*
 !data/.gitkeep
 !data/shadow-slave/
-!data/shadow-slave/*
+!data/shadow-slave/*.json
+!data/shadow-slave/*.jsonl
+data/**/*.png
 scraper/data/*
 !scraper/data/.gitkeep
 

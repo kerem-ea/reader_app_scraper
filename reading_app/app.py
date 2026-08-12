@@ -363,6 +363,45 @@ def get_current_screen(win):
         return None
 
 
+def get_screen_work_area(win):
+    scr = get_current_screen(win)
+    if not scr and getattr(webview, 'screens', None):
+        scr = webview.screens[0]
+
+    if not scr:
+        return 0, 0, 1280, 850
+
+    if sys.platform == 'win32':
+        try:
+            import ctypes
+            from ctypes import wintypes
+
+            class MONITORINFO(ctypes.Structure):
+                _fields_ = [
+                    ('cbSize', wintypes.DWORD),
+                    ('rcMonitor', wintypes.RECT),
+                    ('rcWork', wintypes.RECT),
+                    ('dwFlags', wintypes.DWORD),
+                ]
+
+            mi = MONITORINFO()
+            mi.cbSize = ctypes.sizeof(MONITORINFO)
+            cx = win.x + win.width // 2 if win else scr.x + scr.width // 2
+            cy = win.y + win.height // 2 if win else scr.y + scr.height // 2
+            pt = wintypes.POINT(cx, cy)
+            hMon = ctypes.windll.user32.MonitorFromPoint(pt, 1)  # MONITOR_DEFAULTTONEAREST
+            if ctypes.windll.user32.GetMonitorInfoW(hMon, ctypes.byref(mi)):
+                wx = mi.rcWork.left
+                wy = mi.rcWork.top
+                ww = mi.rcWork.right - mi.rcWork.left
+                wh = mi.rcWork.bottom - mi.rcWork.top
+                return wx, wy, ww, wh
+        except Exception:
+            pass
+
+    return scr.x, scr.y, scr.width, scr.height
+
+
 class Api:
     def __init__(self):
         self._window = None
@@ -417,9 +456,9 @@ class Api:
                 if self._window.width > 200 and self._window.height > 200:
                     self._restored_bounds = (self._window.x, self._window.y, self._window.width, self._window.height)
                 
-                if scr:
-                    self._window.move(scr.x, scr.y)
-                    self._window.resize(scr.width, scr.height - 40)
+                wx, wy, ww, wh = get_screen_work_area(self._window)
+                self._window.move(wx, wy)
+                self._window.resize(ww, wh)
                 self._is_maximized = True
                 try:
                     self._window.evaluate_js('if (window.setWindowMaximizedState) window.setWindowMaximizedState(true);')
