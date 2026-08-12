@@ -1,5 +1,6 @@
-﻿import asyncio
+import asyncio
 import re
+import sys
 import time
 
 from catalog import get_chapter_titles
@@ -12,6 +13,14 @@ from site_config import SiteRegistry, SiteConfig
 
 
 def collect_inputs() -> tuple[SiteConfig, str, int, int, str]:
+    if len(sys.argv) >= 5:
+        novel_input = sys.argv[1].strip()
+        start_chapter = int(sys.argv[2].strip())
+        end_chapter = int(sys.argv[3].strip())
+        mode_choice = sys.argv[4].strip()
+        site_config, novel_name = SiteRegistry.get(novel_input)
+        return site_config, novel_name, start_chapter, end_chapter, mode_choice
+
     novel_input = input("Novel slug or supported novel URL: ").strip()
     if not novel_input:
         raise ValueError("Novel input cannot be empty.")

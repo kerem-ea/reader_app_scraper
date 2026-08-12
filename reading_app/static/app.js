@@ -17,7 +17,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let chapters = [], current = 1, currentSite = null
 
-  // Apply styling settings
   function applySettings() {
     contentEl.style.fontSize = fontSize.value + 'px'
     contentEl.style.lineHeight = lineHeight.value
@@ -30,7 +29,6 @@ document.addEventListener('DOMContentLoaded', () => {
   themeToggle.checked = true
   applySettings()
 
-  // Window Maximize State & Drag Blocking
   window.isMaximized = true
   window.setWindowMaximizedState = (isMaximized) => {
     window.isMaximized = !!isMaximized
@@ -61,7 +59,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   setupDragBlocker()
 
-  // Prevent pywebview window dragging when maximized or when interacting with toolbar/controls
   window.addEventListener('mousedown', (e) => {
     const isInteractive = e.target.closest('input, select, button, label, #progressTrack, #progressBar, .toolbar-bar, .toolbar-controls, .selectors, .window-controls, .no-drag')
     if (isInteractive) {
@@ -74,7 +71,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }, true)
 
-  // Track Reading Scroll Progress & Interactive Seeking
   const progressTrack = $('#progressTrack')
   let isDraggingProgress = false
 
@@ -121,7 +117,6 @@ document.addEventListener('DOMContentLoaded', () => {
     statusPercent.textContent = Math.round(scrolled) + '%'
   }
 
-  // API calls
   async function fetchProgress() {
     try { return await (await fetch('/api/progress')).json() } catch { return null }
   }
@@ -141,8 +136,8 @@ document.addEventListener('DOMContentLoaded', () => {
       siteSelect.innerHTML = ''
 
       if (!data || !data.length) {
-        titleEl.textContent = 'No Novels Found'
-        contentEl.textContent = 'No chapter data found in scraper/data directory. Please check the data path.'
+        titleEl.textContent = 'No EPUB Novels Found'
+        contentEl.textContent = 'No .epub files found in scraper/data directory or root project folder. Run epub.py or place EPUB files in scraper/data.'
         loadingSpinner.style.display = 'none'
         return
       }
@@ -162,7 +157,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (e) {
       console.error(e)
       titleEl.textContent = 'Error Loading Data'
-      contentEl.textContent = 'Failed to load novel index from backend.'
+      contentEl.textContent = 'Failed to load EPUB index from backend.'
     } finally {
       loadingSpinner.style.display = 'none'
     }
@@ -179,13 +174,13 @@ document.addEventListener('DOMContentLoaded', () => {
       chapters.forEach(ch => {
         const opt = document.createElement('option')
         opt.value = ch.number
-        opt.textContent = `${ch.number}: ${ch.title}`
+        opt.textContent = ch.title || `Chapter ${ch.number}`
         tocSelect.appendChild(opt)
       })
 
       if (!chapters.length) {
-        titleEl.textContent = 'No Chapters'
-        contentEl.textContent = 'This novel does not have any loaded chapters yet.'
+        titleEl.textContent = 'No Chapters Found'
+        contentEl.textContent = 'This EPUB file does not contain readable chapter items.'
         loadingSpinner.style.display = 'none'
         return
       }
@@ -206,8 +201,9 @@ document.addEventListener('DOMContentLoaded', () => {
     readerContainer.scrollTop = 0
     try {
       const ch = await (await fetch(`/api/chapter?site=${encodeURIComponent(currentSite)}&num=${num}`)).json()
-      titleEl.textContent = ch.title ? `${ch.number} — ${ch.title}` : `Chapter ${ch.number}`
-      subEl.textContent = `${currentSite.replace('-', ' ').toUpperCase()} • CHAPTER ${ch.number}`
+      titleEl.textContent = ch.title || `Chapter ${ch.number}`
+      const cleanBookName = currentSite.split('/').pop().replace(/\.epub$/i, '').toUpperCase()
+      subEl.textContent = `${cleanBookName} • CHAPTER ${ch.number}`
       contentEl.textContent = ch.text || ''
       tocSelect.value = String(num)
       current = num
@@ -217,7 +213,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (e) {
       console.error(e)
       titleEl.textContent = `Error Loading Chapter ${num}`
-      contentEl.textContent = 'Failed to fetch chapter text.'
+      contentEl.textContent = 'Failed to fetch chapter text from EPUB.'
     } finally {
       loadingSpinner.style.display = 'none'
       readerContainer.onscroll()
@@ -245,7 +241,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Navigation handlers
   prevBtn.onclick = prevBtnBottom.onclick = () => navigate('prev')
   nextBtn.onclick = nextBtnBottom.onclick = () => navigate('next')
 
@@ -256,7 +251,6 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => markReadBtn.textContent = origText, 1500)
   }
 
-  // Window control buttons & titlebar double-click
   const windowBar = $('.window-bar')
   if (windowBar) {
     windowBar.ondblclick = (e) => {
@@ -287,11 +281,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-
   tocSelect.onchange = e => { current = parseInt(e.target.value); loadChapter(current) }
   siteSelect.onchange = e => { loadChapters(e.target.value) }
 
-  // Keyboard navigation
   document.onkeydown = e => {
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return
 
@@ -306,4 +298,4 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   fetchSites()
-})
+})

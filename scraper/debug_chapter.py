@@ -9,7 +9,7 @@ from paths import initialize_paths, NOVEL_URL, CHAPTER_URL_TMPL
 from session import bootstrap_with_retry, make_impersonate_session, camoufox_ctx, wait_for_challenge_clear
 from site_config import SiteRegistry
 
-HTML_OUT_DIR = Path(__file__).resolve().parent / "data"
+HTML_OUT_DIR = Path(__file__).resolve().parent.parent / "data"
 HTML_OUT_DIR.mkdir(parents=True, exist_ok=True)
 
 

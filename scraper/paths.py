@@ -12,7 +12,7 @@ NOVEL_URL = ""
 CHAPTER_URL_TMPL = ""
 SITE_CONFIG: SiteConfig = FREEWEBNOVEL
 
-BASE_DIR = Path(__file__).resolve().parent / "data"
+BASE_DIR = Path(__file__).resolve().parent.parent / "data"
 
 
 def initialize_paths(site_config: SiteConfig, novel_name: str, start: int, end: int):

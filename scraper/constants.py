@@ -2,7 +2,7 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
-BASE_DIR = Path(__file__).resolve().parent / "data"
+BASE_DIR = Path(__file__).resolve().parent.parent / "data"
 
 COOKIE_MAX_AGE = 20 * 60
 REBOOTSTRAP_EVERY_N = 85

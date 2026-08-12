@@ -1,15 +1,13 @@
 import json
+import sys
 from html import escape
 from pathlib import Path
 
 from ebooklib import epub
 from PIL import Image
 
-
-JSON_FILE = r"C:\Users\lost from light\repos\reader_app_scraper\scraper\data\shadow-slave\shadow-slave_chapters_raw.json"
-COVER_FILE = r"C:\Users\lost from light\repos\reader_app_scraper\reading_app\weaver.ico"
-OUTPUT_DIR = r"C:\Users\lost from light\repos\reader_app_scraper"
-
+BASE_DIR = Path(__file__).resolve().parent / "data"
+COVER_FILE = Path(__file__).resolve().parent / "reading_app" / "weaver.ico"
 
 VOLUMES = [
     (1, "Child of Shadows", 1, 95),
@@ -25,7 +23,6 @@ VOLUMES = [
     (11, "The Song of Ariadne", 2721, 3000),
     (12, "Untitled", 3001, 999999),
 ]
-
 
 CSS = """
 body {
@@ -62,30 +59,26 @@ p {
 """
 
 
-def get_volume(chapter_number):
-    for number, title, start, end in VOLUMES:
-        if start <= chapter_number <= end:
-            return number, title
-
-    return None, None
-
-
-def prepare_cover():
-    cover_path = Path(OUTPUT_DIR) / "cover.png"
-
-    image = Image.open(COVER_FILE)
-    image = image.convert("RGB")
-    image.save(cover_path, "PNG")
-
-    return cover_path
+def prepare_cover(output_dir):
+    cover_path = output_dir / "cover.png"
+    if COVER_FILE.exists():
+        try:
+            image = Image.open(COVER_FILE)
+            image = image.convert("RGB")
+            image.save(cover_path, "PNG")
+            return cover_path
+        except Exception:
+            pass
+    return None
 
 
 def add_cover(book, cover_path):
-    with open(cover_path, "rb") as file:
-        book.set_cover(
-            "cover.png",
-            file.read()
-        )
+    if cover_path and cover_path.exists():
+        try:
+            with open(cover_path, "rb") as file:
+                book.set_cover("cover.png", file.read())
+        except Exception:
+            pass
 
 
 def create_style():
@@ -98,49 +91,33 @@ def create_style():
 
 
 def create_chapter(chapter, style):
-    number = chapter["chapter_number"]
-    title = chapter["title"]
-    text = chapter["text"]
+    number = chapter.get("chapter_number", 0)
+    title = chapter.get("title", f"Chapter {number}")
+    text = chapter.get("text", "")
 
-    chapter_title = f"Chapter {number} - {title}"
+    chapter_title = f"Chapter {number} - {title}" if not title.lower().startswith("chapter") else title
 
-    text = (
-        text
-        .replace("\r\n", "\n")
-        .replace("\r", "\n")
-    )
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
 
     paragraphs = []
-
     for paragraph in text.split("\n\n"):
         paragraph = paragraph.strip()
-
         if not paragraph:
             continue
-
         paragraph = escape(paragraph)
         paragraph = paragraph.replace("\n", "<br/>")
-
-        paragraphs.append(
-            f"<p>{paragraph}</p>"
-        )
+        paragraphs.append(f"<p>{paragraph}</p>")
 
     content = f"""
 <html xmlns="http://www.w3.org/1999/xhtml">
-
 <head>
     <title>{escape(chapter_title)}</title>
     <link rel="stylesheet" type="text/css" href="style.css"/>
 </head>
-
 <body>
-
     <h1>{escape(chapter_title)}</h1>
-
     {''.join(paragraphs)}
-
 </body>
-
 </html>
 """
 
@@ -149,22 +126,17 @@ def create_chapter(chapter, style):
         file_name=f"chapter-{number}.xhtml",
         lang="en"
     )
-
     item.content = content.encode("utf-8")
     item.add_item(style)
-
     return item
 
 
 def create_volume_page(volume_number, volume_title, volume_chapters, style):
     volume_name = f"Volume {volume_number} - {volume_title}"
-
     links = []
-
     for chapter in volume_chapters:
-        number = chapter["chapter_number"]
-        title = chapter["title"]
-
+        number = chapter.get("chapter_number", 0)
+        title = chapter.get("title", f"Chapter {number}")
         links.append(
             f"""
             <p class="toc-chapter">
@@ -177,20 +149,14 @@ def create_volume_page(volume_number, volume_title, volume_chapters, style):
 
     content = f"""
 <html xmlns="http://www.w3.org/1999/xhtml">
-
 <head>
     <title>{escape(volume_name)}</title>
     <link rel="stylesheet" type="text/css" href="style.css"/>
 </head>
-
 <body>
-
     <h1>{escape(volume_name)}</h1>
-
     {''.join(links)}
-
 </body>
-
 </html>
 """
 
@@ -199,26 +165,27 @@ def create_volume_page(volume_number, volume_title, volume_chapters, style):
         file_name=f"volume-{volume_number}.xhtml",
         lang="en"
     )
-
     item.content = content.encode("utf-8")
     item.add_item(style)
-
     return item
 
 
-def create_full_book(chapters, cover_path):
+def create_full_book(novel_title, chapters, cover_path, output_dir, is_shadow_slave=False):
     print()
-    print("Creating full Shadow Slave EPUB...")
+    print(f"Creating full {novel_title} EPUB...")
     print("----------------------------------------")
 
     book = epub.EpubBook()
+    slug = novel_title.lower().replace(" ", "-")
 
-    book.set_identifier("shadow-slave")
-    book.set_title("Shadow Slave")
+    book.set_identifier(slug)
+    book.set_title(novel_title)
     book.set_language("en")
-    book.add_author("Guiltythree")
+    author = "Guiltythree" if is_shadow_slave else "WebNovel Author"
+    book.add_author(author)
 
-    add_cover(book, cover_path)
+    if cover_path:
+        add_cover(book, cover_path)
 
     style = create_style()
     book.add_item(style)
@@ -227,173 +194,115 @@ def create_full_book(chapters, cover_path):
     volume_items = {}
 
     for chapter in chapters:
-        number = chapter["chapter_number"]
-
-        print(
-            f"Full EPUB - Chapter {number}: "
-            f"{chapter['title']}"
-        )
-
-        item = create_chapter(
-            chapter,
-            style
-        )
-
+        number = chapter.get("chapter_number", 0)
+        item = create_chapter(chapter, style)
         book.add_item(item)
         chapter_items[number] = item
 
-    for volume_number, volume_title, start, end in VOLUMES:
-        volume_chapters = [
-            chapter
-            for chapter in chapters
-            if start <= chapter["chapter_number"] <= end
-        ]
+    if is_shadow_slave:
+        for volume_number, volume_title, start, end in VOLUMES:
+            volume_chapters = [
+                ch for ch in chapters
+                if start <= ch.get("chapter_number", 0) <= end
+            ]
+            if not volume_chapters:
+                continue
 
-        if not volume_chapters:
-            continue
+            volume_item = create_volume_page(volume_number, volume_title, volume_chapters, style)
+            book.add_item(volume_item)
+            volume_items[volume_number] = volume_item
 
-        print(
-            f"Adding Volume {volume_number}: "
-            f"{volume_title}"
-        )
+        toc_entries = []
+        for volume_number, volume_title, start, end in VOLUMES:
+            if volume_number not in volume_items:
+                continue
 
-        volume_item = create_volume_page(
-            volume_number,
-            volume_title,
-            volume_chapters,
-            style
-        )
-
-        book.add_item(volume_item)
-        volume_items[volume_number] = volume_item
-
-    toc_entries = []
-
-    for volume_number, volume_title, start, end in VOLUMES:
-        if volume_number not in volume_items:
-            continue
-
-        chapter_entries = []
-
-        for chapter in chapters:
-            number = chapter["chapter_number"]
-
-            if start <= number <= end:
-                title = chapter["title"]
-
-                chapter_entries.append(
-                    epub.Link(
-                        f"chapter-{number}.xhtml",
-                        f"Chapter {number} - {title}",
-                        f"chapter-{number}"
+            chapter_entries = []
+            for chapter in chapters:
+                number = chapter.get("chapter_number", 0)
+                if start <= number <= end:
+                    title = chapter.get("title", f"Chapter {number}")
+                    chapter_entries.append(
+                        epub.Link(
+                            f"chapter-{number}.xhtml",
+                            f"Chapter {number} - {title}",
+                            f"chapter-{number}"
+                        )
                     )
-                )
 
-        toc_entries.append(
-            (
-                epub.Section(
-                    f"Volume {volume_number} - {volume_title}",
-                    f"volume-{volume_number}.xhtml"
-                ),
-                chapter_entries
+            toc_entries.append(
+                (
+                    epub.Section(
+                        f"Volume {volume_number} - {volume_title}",
+                        f"volume-{volume_number}.xhtml"
+                    ),
+                    chapter_entries
+                )
             )
-        )
+        book.toc = tuple(toc_entries)
 
-    book.toc = tuple(toc_entries)
+        book.add_item(epub.EpubNcx())
+        book.add_item(epub.EpubNav())
 
-    book.add_item(epub.EpubNcx())
-    book.add_item(epub.EpubNav())
-
-    spine = ["nav"]
-
-    for volume_number, volume_title, start, end in VOLUMES:
-        if volume_number not in volume_items:
-            continue
-
-        spine.append(
-            volume_items[volume_number]
-        )
-
+        spine = ["nav"]
+        for volume_number, volume_title, start, end in VOLUMES:
+            if volume_number not in volume_items:
+                continue
+            spine.append(volume_items[volume_number])
+            for chapter in chapters:
+                number = chapter.get("chapter_number", 0)
+                if start <= number <= end:
+                    spine.append(chapter_items[number])
+        book.spine = spine
+    else:
+        toc_entries = []
         for chapter in chapters:
-            number = chapter["chapter_number"]
-
-            if start <= number <= end:
-                spine.append(
-                    chapter_items[number]
+            number = chapter.get("chapter_number", 0)
+            title = chapter.get("title", f"Chapter {number}")
+            toc_entries.append(
+                epub.Link(
+                    f"chapter-{number}.xhtml",
+                    f"Chapter {number} - {title}" if not title.lower().startswith("chapter") else title,
+                    f"chapter-{number}"
                 )
+            )
+        book.toc = tuple(toc_entries)
+        book.add_item(epub.EpubNcx())
+        book.add_item(epub.EpubNav())
+        book.spine = ["nav"] + list(chapter_items.values())
 
-    book.spine = spine
-
-    output_file = Path(OUTPUT_DIR) / "Shadow Slave.epub"
-
-    print()
-    print("Writing full EPUB...")
-
-    epub.write_epub(
-        str(output_file),
-        book
-    )
-
-    print(
-        f"Full EPUB created: {output_file}"
-    )
-
+    output_file = output_dir / f"{novel_title}.epub"
+    print(f"Writing EPUB: {output_file.name}...")
+    epub.write_epub(str(output_file), book)
+    print(f"EPUB created successfully: {output_file}")
     return output_file
 
 
-def create_volume_book(
-    volume_number,
-    volume_title,
-    volume_chapters,
-    cover_path
-):
+def create_volume_book(volume_number, volume_title, volume_chapters, cover_path, output_dir):
     volume_name = f"Volume {volume_number} - {volume_title}"
-
-    print()
-    print(f"Creating {volume_name} EPUB...")
-    print("----------------------------------------")
-
     book = epub.EpubBook()
 
-    identifier = (
-        f"shadow-slave-volume-{volume_number}"
-    )
-
+    identifier = f"shadow-slave-volume-{volume_number}"
     book.set_identifier(identifier)
     book.set_title(volume_name)
     book.set_language("en")
     book.add_author("Guiltythree")
 
-    add_cover(book, cover_path)
+    if cover_path:
+        add_cover(book, cover_path)
 
     style = create_style()
     book.add_item(style)
 
     chapter_items = []
-
-    for chapter in volume_chapters:
-        number = chapter["chapter_number"]
-
-        print(
-            f"Volume {volume_number} - "
-            f"Chapter {number}: "
-            f"{chapter['title']}"
-        )
-
-        item = create_chapter(
-            chapter,
-            style
-        )
-
-        book.add_item(item)
-        chapter_items.append(item)
-
     toc_entries = []
 
     for chapter in volume_chapters:
-        number = chapter["chapter_number"]
-        title = chapter["title"]
-
+        number = chapter.get("chapter_number", 0)
+        title = chapter.get("title", f"Chapter {number}")
+        item = create_chapter(chapter, style)
+        book.add_item(item)
+        chapter_items.append(item)
         toc_entries.append(
             epub.Link(
                 f"chapter-{number}.xhtml",
@@ -403,129 +312,126 @@ def create_volume_book(
         )
 
     book.toc = tuple(toc_entries)
-
     book.add_item(epub.EpubNcx())
     book.add_item(epub.EpubNav())
-
-    book.spine = [
-        "nav"
-    ] + chapter_items
+    book.spine = ["nav"] + chapter_items
 
     safe_title = (
-        volume_title
-        .replace("/", "-")
-        .replace("\\", "-")
-        .replace(":", "-")
-        .replace("*", "-")
-        .replace("?", "-")
-        .replace('"', "'")
-        .replace("<", "-")
-        .replace(">", "-")
-        .replace("|", "-")
+        volume_title.replace("/", "-").replace("\\", "-").replace(":", "-")
+        .replace("*", "-").replace("?", "-").replace('"', "'")
+        .replace("<", "-").replace(">", "-").replace("|", "-")
     )
-
-    output_file = (
-        Path(OUTPUT_DIR)
-        / f"Shadow Slave - Volume {volume_number} - {safe_title}.epub"
-    )
-
-    print()
-    print(f"Writing Volume {volume_number} EPUB...")
-
-    epub.write_epub(
-        str(output_file),
-        book
-    )
-
-    print(
-        f"Volume {volume_number} created: "
-        f"{output_file}"
-    )
-
+    output_file = output_dir / f"Shadow Slave - Volume {volume_number} - {safe_title}.epub"
+    epub.write_epub(str(output_file), book)
     return output_file
 
 
-print("Reading JSON...")
+def find_scraped_novels():
+    if not BASE_DIR.exists():
+        return []
 
-with open(
-    JSON_FILE,
-    "r",
-    encoding="utf-8"
-) as file:
-    data = json.load(file)
-
-chapters = list(data.values())
-
-chapters.sort(
-    key=lambda chapter: chapter["chapter_number"]
-)
-
-print(
-    f"Found {len(chapters)} chapters"
-)
-
-cover_path = prepare_cover()
-
-full_book = create_full_book(
-    chapters,
-    cover_path
-)
-
-volume_files = []
-
-for volume_number, volume_title, start, end in VOLUMES:
-    volume_chapters = [
-        chapter
-        for chapter in chapters
-        if start <= chapter["chapter_number"] <= end
-    ]
-
-    if not volume_chapters:
-        continue
-
-    volume_file = create_volume_book(
-        volume_number,
-        volume_title,
-        volume_chapters,
-        cover_path
-    )
-
-    volume_files.append(
-        (
-            volume_number,
-            volume_title,
-            len(volume_chapters),
-            volume_file
-        )
-    )
+    novels = []
+    for item in BASE_DIR.iterdir():
+        if item.is_dir():
+            json_files = list(item.glob("*_chapters_raw.json"))
+            if json_files:
+                novels.append({
+                    "slug": item.name,
+                    "dir": item,
+                    "json_file": json_files[0]
+                })
+    return novels
 
 
-print()
-print("========================================")
-print("DONE")
-print("========================================")
-print()
-print(
-    f"Total chapters found: {len(chapters)}"
-)
-print()
-print(
-    f"Full book: {full_book.name}"
-)
-print()
-print("Volume EPUBs:")
+def main():
+    novels = find_scraped_novels()
+    if not novels:
+        print("No scraped novel data found in data/ directory.")
+        print("Please run the scraper first (python scraper/scrape.py).")
+        return
 
-for volume_number, volume_title, count, file in volume_files:
-    print(
-        f"Volume {volume_number}: "
-        f"{count} chapters - {file.name}"
-    )
+    print("========================================")
+    print("Available Scraped Novels:")
+    print("========================================")
+    for idx, nov in enumerate(novels, 1):
+        print(f"[{idx}] {nov['slug'].replace('-', ' ').title()} ({nov['slug']})")
 
-print()
-print(
-    f"Created {len(volume_files)} volume EPUBs"
-)
-print(
-    f"Created {len(volume_files) + 1} EPUBs total"
-)
-print("========================================")
+    selected = None
+    if len(sys.argv) > 1:
+        arg_slug = sys.argv[1].strip().lower()
+        for nov in novels:
+            if nov["slug"].lower() == arg_slug:
+                selected = nov
+                break
+
+    if not selected:
+        if len(novels) == 1:
+            selected = novels[0]
+            print(f"\nAutomatically selected: {selected['slug']}")
+        else:
+            try:
+                choice = input(f"\nSelect a novel (1-{len(novels)}) [default 1]: ").strip()
+                if not choice:
+                    idx = 0
+                else:
+                    idx = int(choice) - 1
+                if 0 <= idx < len(novels):
+                    selected = novels[idx]
+            except Exception:
+                selected = novels[0]
+
+    if not selected:
+        selected = novels[0]
+
+    novel_slug = selected["slug"]
+    json_path = selected["json_file"]
+    output_dir = selected["dir"]
+    novel_title = novel_slug.replace("-", " ").title()
+
+    print(f"\nReading {json_path.name}...")
+    with open(json_path, "r", encoding="utf-8") as file:
+        data = json.load(file)
+
+    if isinstance(data, dict):
+        chapters = list(data.values())
+    elif isinstance(data, list):
+        chapters = data
+    else:
+        chapters = []
+
+    chapters.sort(key=lambda ch: ch.get("chapter_number", 0))
+    print(f"Found {len(chapters)} chapters for {novel_title}")
+
+    cover_path = prepare_cover(output_dir)
+    is_shadow_slave = (novel_slug.lower() == "shadow-slave")
+
+    full_book = create_full_book(novel_title, chapters, cover_path, output_dir, is_shadow_slave)
+
+    if is_shadow_slave:
+        volume_files = []
+        for volume_number, volume_title, start, end in VOLUMES:
+            volume_chapters = [
+                ch for ch in chapters
+                if start <= ch.get("chapter_number", 0) <= end
+            ]
+            if not volume_chapters:
+                continue
+
+            vol_file = create_volume_book(volume_number, volume_title, volume_chapters, cover_path, output_dir)
+            volume_files.append((volume_number, volume_title, len(volume_chapters), vol_file))
+
+        print("\nVolume EPUBs created:")
+        for vnum, vtitle, vcount, vfile in volume_files:
+            print(f"  Volume {vnum} ({vtitle}): {vcount} chapters -> {vfile.name}")
+
+    print("\n========================================")
+    print("EPUB CONVERSION COMPLETE")
+    print("========================================")
+    print(f"Novel: {novel_title}")
+    print(f"Output directory: {output_dir}")
+    print(f"Generated EPUB: {full_book.name}")
+    print("========================================\n")
+
+
+if __name__ == "__main__":
+    main()

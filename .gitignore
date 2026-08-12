@@ -36,10 +36,10 @@ last_read.txt
 reading_app/last_read.txt
 
 # Scraped data
-# Keep the data directory structure but ignore scraped content except shadow-slave
+data/*
+!data/.gitkeep
 scraper/data/*
 !scraper/data/.gitkeep
-!scraper/data/shadow-slave/
 
 # Built executable
 reader.exe

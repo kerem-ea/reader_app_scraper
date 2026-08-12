@@ -42,7 +42,6 @@ html, body {
   user-select: text;
 }
 
-/* Top Window Bar (Dedicated Drag Area) */
 .window-bar {
   position: fixed;
   top: 0;
@@ -113,7 +112,6 @@ html, body {
   color: #ffffff;
 }
 
-/* Control Toolbar - 100% NON-DRAGGABLE */
 .toolbar-bar {
   position: fixed;
   top: 34px;
@@ -230,7 +228,6 @@ input[type="range"] {
   background-color: var(--accent-hover);
 }
 
-/* Progress Track */
 #progressTrack {
   position: fixed;
   top: 78px;
@@ -270,7 +267,6 @@ input[type="range"],
   -webkit-app-region: no-drag !important;
 }
 
-/* Main Container & Scroll */
 #readerContainer {
   position: fixed;
   top: 84px;
@@ -283,7 +279,6 @@ input[type="range"],
   scroll-behavior: smooth;
 }
 
-/* Custom Scrollbar */
 #readerContainer::-webkit-scrollbar {
   width: 8px;
 }
@@ -378,7 +373,6 @@ body.soft-font #chapterContent {
   background-color: var(--accent-hover);
 }
 
-/* Bottom Bar */
 .bottom-bar {
   position: fixed;
   bottom: 0;
@@ -428,7 +422,6 @@ body.soft-font #chapterContent {
   font-size: 11px;
 }
 
-/* Loading Spinner */
 .spinner-overlay {
   display: flex;
   align-items: center;
@@ -449,17 +442,16 @@ body.soft-font #chapterContent {
   to { transform: rotate(360deg); }
 }
 
-/* Responsive Media Queries for window resizing */
 @media (max-width: 900px) {
   .toolbar-controls .control-group:nth-child(2),
   .toolbar-controls .control-group:nth-child(3) {
-    display: none; /* Hide height & width slider on narrow windows */
+    display: none;
   }
 }
 
 @media (max-width: 680px) {
   .toolbar-controls {
-    display: none; /* Hide top sliders on tiny window sizes */
+    display: none;
   }
   .selectors {
     max-width: 100%;
@@ -472,4 +464,3 @@ body.soft-font #chapterContent {
     box-shadow: none;
   }
 }
-
