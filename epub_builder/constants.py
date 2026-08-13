@@ -1,4 +1,5 @@
 import json
+import re
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent / "data"
@@ -27,20 +28,50 @@ DEFAULT_KNOWN_METADATA = {
 }
 
 
+def sanitize_filename(name: str, fallback: str = "novel") -> str:
+    """Sanitize novel and volume titles so they are valid filenames across all operating systems."""
+    if not name or not str(name).strip():
+        return fallback
+    cleaned = str(name).strip()
+    # Replace characters that are invalid in Windows and POSIX filenames (\ / : * ? " < > |)
+    cleaned = re.sub(r'[\/\\:\*\?"<>\|]', ' - ', cleaned)
+    # Normalize multiple dashes and spaces
+    cleaned = re.sub(r'\s*-\s*', ' - ', cleaned)
+    cleaned = re.sub(r'-+', '-', cleaned)
+    cleaned = re.sub(r'\s+', ' ', cleaned)
+    cleaned = cleaned.strip('. -')
+    return cleaned if cleaned else fallback
+
+
 def get_novel_metadata(output_dir: Path, novel_slug: str) -> dict:
     meta_file = output_dir / "metadata.json"
     if meta_file.exists():
         try:
             with open(meta_file, "r", encoding="utf-8") as f:
                 data = json.load(f)
-            vols = [
-                (v["number"], v["title"], v["start"], v["end"])
-                for v in data.get("volumes", [])
-            ]
+
+            raw_vols = data.get("volumes", [])
+            vols = []
+            for v in raw_vols:
+                if isinstance(v, dict) and "number" in v and "title" in v and "start" in v and "end" in v:
+                    vols.append((int(v["number"]), str(v["title"]), int(v["start"]), int(v["end"])))
+                elif isinstance(v, (list, tuple)) and len(v) >= 4:
+                    vols.append((int(v[0]), str(v[1]), int(v[2]), int(v[3])))
+
+            title = data.get("title")
+            if not title or not str(title).strip():
+                title = novel_slug.replace("-", " ").title()
+
+            author = data.get("author")
+            if not author or not str(author).strip():
+                author = "WebNovel Author"
+
             return {
-                "title": data.get("title", novel_slug.replace("-", " ").title()),
-                "author": data.get("author", "WebNovel Author"),
+                "title": str(title).strip(),
+                "author": str(author).strip(),
                 "volumes": vols,
+                "site": data.get("site", ""),
+                "url": data.get("url", ""),
             }
         except Exception:
             pass

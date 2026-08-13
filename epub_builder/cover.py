@@ -1,44 +1,69 @@
+import io
+from pathlib import Path
 from PIL import Image
 from ebooklib import epub
-from epub_builder.constants import COVER_FILE, CSS
+from epub_builder.constants import COVER_FILE, CSS, BASE_DIR
 
 
-def _convert_to_png(src_path, dest_path):
+def _convert_to_png(src_path: Path, dest_path: Path) -> Path | None:
     try:
-        image = Image.open(src_path)
-        image.convert("RGB").save(dest_path, "PNG")
+        with open(src_path, "rb") as f:
+            data = f.read()
+
+        with Image.open(io.BytesIO(data)) as image:
+            rgb_image = image.convert("RGB")
+            dest_path.parent.mkdir(parents=True, exist_ok=True)
+            rgb_image.save(dest_path, "PNG")
         return dest_path
     except Exception:
+        if src_path.exists():
+            return src_path
         return None
 
 
-def prepare_cover(output_dir):
+def prepare_cover(output_dir: Path) -> Path | None:
     dest_path = output_dir / "cover.png"
 
-    for candidate in (
+    candidates = [
         output_dir / "cover.png",
         output_dir / "cover.jpg",
         output_dir / "cover.jpeg",
         output_dir / "cover.webp",
-    ):
-        if candidate.exists():
-            converted = _convert_to_png(candidate, dest_path)
-            if converted:
-                return converted
+    ]
 
+    # Also search for any image in the output_dir
+    try:
+        for f in output_dir.iterdir():
+            if f.is_file() and f.suffix.lower() in (".png", ".jpg", ".jpeg", ".webp") and f not in candidates:
+                candidates.append(f)
+    except Exception:
+        pass
+
+    # Root repository cover fallback
+    root_cover = BASE_DIR.parent / "cover.png"
+    if root_cover.exists():
+        candidates.append(root_cover)
+
+    # App icon fallback
     if COVER_FILE.exists():
-        return _convert_to_png(COVER_FILE, dest_path)
+        candidates.append(COVER_FILE)
+
+    for candidate in candidates:
+        if candidate.exists() and candidate.stat().st_size > 0:
+            converted = _convert_to_png(candidate, dest_path)
+            if converted and converted.exists():
+                return converted
 
     return None
 
 
-def add_cover(book, cover_path):
-    if cover_path and cover_path.exists():
+def add_cover(book, cover_path: Path | None) -> None:
+    if cover_path and Path(cover_path).exists():
         try:
             with open(cover_path, "rb") as file:
                 book.set_cover("cover.png", file.read())
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"Warning: Could not embed cover into EPUB: {e}")
 
 
 def create_style():
