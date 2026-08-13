@@ -21,7 +21,6 @@ from paths import NOVEL_URL
 from session import bootstrap_with_retry, make_impersonate_session
 
 failed_chapters: set[int] = set()
-fail_counter = 0
 
 
 async def record_success(
@@ -35,8 +34,6 @@ async def record_success(
     chapter_titles: dict[int, str],
     source_html: str | None = None,
 ) -> None:
-    global fail_counter
-
     chapter_id = f"chapter-{chapter_number}"
     chapter_title = chapter_titles.get(chapter_number)
     if not chapter_title and source_html:
@@ -58,8 +55,6 @@ async def record_success(
 
     if chapter_number in failed_chapters:
         failed_chapters.discard(chapter_number)
-        if fail_counter > 0:
-            fail_counter -= 1
         if stats["failed"] > 0:
             stats["failed"] -= 1
 
@@ -73,10 +68,8 @@ async def record_success(
 
 
 def record_failure(chapter_number: int) -> None:
-    global fail_counter
     if chapter_number not in failed_chapters:
         failed_chapters.add(chapter_number)
-        fail_counter += 1
 
 
 class Gate:
@@ -145,11 +138,6 @@ class Gate:
                 self.cooldown_until = time.time() + self.settings.global_cooldown
                 self.fail_streak = 0
 
-    async def note_challenge(self):
-        async with self.lock:
-            self.clean_streak = 0
-            self.current_delay = min(self.current_delay * 1.15, 8.0)
-
 
 async def fetch_one(
     session_holder,
@@ -160,7 +148,6 @@ async def fetch_one(
     writer,
     stats: dict,
     total: int,
-    refresh_lock: asyncio.Lock,
     settings,
     chapter_titles: dict[int, str],
     site_config=None,
@@ -279,7 +266,6 @@ async def run_fast_mode(
                     writer,
                     stats,
                     total,
-                    refresh_lock,
                     settings,
                     chapter_titles,
                     site_config=site_config,

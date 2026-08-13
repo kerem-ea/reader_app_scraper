@@ -3,6 +3,16 @@ from epub_builder.cover import add_cover, create_style
 from epub_builder.chapters import create_chapter, create_volume_page
 
 
+def _finalize_epub(book, toc, spine, output_file):
+    book.toc = tuple(toc)
+    book.add_item(epub.EpubNcx())
+    book.add_item(epub.EpubNav())
+    book.spine = ["nav"] + spine
+    print(f"Writing EPUB: {output_file.name}...")
+    epub.write_epub(str(output_file), book)
+    print(f"EPUB created successfully: {output_file}")
+
+
 def create_full_book(novel_title, chapters, cover_path, output_dir, metadata=None):
     print()
     print(f"Creating full {novel_title} EPUB...")
@@ -34,6 +44,8 @@ def create_full_book(novel_title, chapters, cover_path, output_dir, metadata=Non
         item = create_chapter(chapter, style)
         book.add_item(item)
         chapter_items[number] = item
+
+    output_file = output_dir / f"{novel_title}.epub"
 
     if volumes:
         for volume_number, volume_title, start, end in volumes:
@@ -75,13 +87,9 @@ def create_full_book(novel_title, chapters, cover_path, output_dir, metadata=Non
                     chapter_entries
                 )
             )
-        book.toc = tuple(toc_entries)
 
-        book.add_item(epub.EpubNcx())
-        book.add_item(epub.EpubNav())
-
-        spine = ["nav"]
-        for volume_number, volume_title, start, end in volumes:
+        spine = []
+        for volume_number, _, start, end in volumes:
             if volume_number not in volume_items:
                 continue
             spine.append(volume_items[volume_number])
@@ -89,7 +97,8 @@ def create_full_book(novel_title, chapters, cover_path, output_dir, metadata=Non
                 number = chapter.get("chapter_number", 0)
                 if start <= number <= end:
                     spine.append(chapter_items[number])
-        book.spine = spine
+
+        _finalize_epub(book, toc_entries, spine, output_file)
     else:
         toc_entries = []
         for chapter in chapters:
@@ -98,19 +107,12 @@ def create_full_book(novel_title, chapters, cover_path, output_dir, metadata=Non
             toc_entries.append(
                 epub.Link(
                     f"chapter-{number}.xhtml",
-                    f"Chapter {number} - {title}" if not title.lower().startswith("chapter") else title,
+                    title if title.lower().startswith("chapter") else f"Chapter {number} - {title}",
                     f"chapter-{number}"
                 )
             )
-        book.toc = tuple(toc_entries)
-        book.add_item(epub.EpubNcx())
-        book.add_item(epub.EpubNav())
-        book.spine = ["nav"] + list(chapter_items.values())
+        _finalize_epub(book, toc_entries, list(chapter_items.values()), output_file)
 
-    output_file = output_dir / f"{novel_title}.epub"
-    print(f"Writing EPUB: {output_file.name}...")
-    epub.write_epub(str(output_file), book)
-    print(f"EPUB created successfully: {output_file}")
     return output_file
 
 
@@ -148,17 +150,11 @@ def create_volume_book(novel_title, volume_number, volume_title, volume_chapters
             )
         )
 
-    book.toc = tuple(toc_entries)
-    book.add_item(epub.EpubNcx())
-    book.add_item(epub.EpubNav())
-    book.spine = ["nav"] + chapter_items
-
     safe_title = (
         volume_title.replace("/", "-").replace("\\", "-").replace(":", "-")
         .replace("*", "-").replace("?", "-").replace('"', "'")
         .replace("<", "-").replace(">", "-").replace("|", "-")
     )
     output_file = output_dir / f"{novel_title} - Volume {volume_number} - {safe_title}.epub"
-    epub.write_epub(str(output_file), book)
+    _finalize_epub(book, toc_entries, chapter_items, output_file)
     return output_file
-

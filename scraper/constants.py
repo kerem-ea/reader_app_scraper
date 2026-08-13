@@ -1,10 +1,6 @@
 import re
 from dataclasses import dataclass
-from pathlib import Path
 
-BASE_DIR = Path(__file__).resolve().parent.parent / "data"
-
-COOKIE_MAX_AGE = 20 * 60
 REBOOTSTRAP_EVERY_N = 85
 BOOTSTRAP_HEADLESS = True
 IMPERSONATE_CANDIDATES = [
@@ -15,7 +11,6 @@ IMPERSONATE_CANDIDATES = [
 ]
 
 REQUEST_TIMEOUT = 45
-FLUSH_EVERY = 10
 FAIL_STREAK_LIMIT = 2
 RATE_LIMIT_STREAK_LIMIT = 4
 MIN_WORD_COUNT = 50
@@ -25,7 +20,7 @@ DEFAULT_HEADERS = {
         "text/html,application/xhtml+xml,"
         "application/xml;q=0.9,*/*;q=0.8"
     ),
-    "Accept-Encoding": "gzip, deflate, br",
+    "Accept-Encoding": "gzip, deflate",
     "Accept-Language": "en-US,en;q=0.9",
     "Cache-Control": "max-age=0",
     "Connection": "keep-alive",
@@ -34,11 +29,6 @@ DEFAULT_HEADERS = {
     "Sec-Fetch-Site": "same-origin",
     "Upgrade-Insecure-Requests": "1",
 }
-
-CHAPTER_RE = re.compile(
-    r'<div\s+class="chapter-start"\s*>(.*?)<div\s+class="chapter-end"\s*>',
-    re.DOTALL | re.IGNORECASE,
-)
 
 TITLE_RE = re.compile(
     r"Chapter\s+(\d+)(?:\s*[:\-–—]\s*|\s+)\s*(.*)$",

@@ -1,8 +1,7 @@
-import os
 from pathlib import Path
 from flask import Flask, jsonify, request, render_template, abort
-from paths import PROGRESS_FILE, ensure_progress_dir
 from epub_parser import find_all_epub_files, parse_epub_info, extract_chapter_text
+from multi_progress import get_novel_last_read, save_novel_last_read, get_last_progress
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
 
@@ -64,23 +63,11 @@ def api_chapter():
 
 @app.route('/api/progress', methods=['GET'])
 def api_progress_get():
-    if not os.path.isfile(PROGRESS_FILE):
-        return jsonify({'site': None, 'chapter': None})
-
-    try:
-        with open(PROGRESS_FILE, 'r', encoding='utf-8') as f:
-            lines = f.read().splitlines()
-
-        site = lines[0].strip() if len(lines) > 0 and lines[0].strip() else None
-        chapter = None
-        if len(lines) > 1 and lines[1].strip():
-            try:
-                chapter = int(lines[1].strip())
-            except ValueError:
-                chapter = None
+    site = request.args.get('site')
+    if site:
+        chapter = get_novel_last_read(site)
         return jsonify({'site': site, 'chapter': chapter})
-    except Exception:
-        return jsonify({'site': None, 'chapter': None})
+    return jsonify(get_last_progress())
 
 
 @app.route('/api/progress', methods=['POST'])
@@ -92,11 +79,10 @@ def api_progress_post():
     if not site or chapter is None:
         abort(400)
 
-    ensure_progress_dir()
     try:
-        with open(PROGRESS_FILE, 'w', encoding='utf-8') as f:
-            f.write(f'{site}\n{chapter}\n')
-    except Exception:
-        pass
+        chapter = int(chapter)
+    except (ValueError, TypeError):
+        abort(400)
 
+    save_novel_last_read(site, chapter)
     return jsonify({'ok': True})

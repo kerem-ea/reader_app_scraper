@@ -8,7 +8,6 @@ from selectolax.parser import HTMLParser
 from paths import find_data_root, HERE
 
 
-
 def find_all_epub_files():
     current_root = find_data_root()
     search_dirs = [
@@ -37,6 +36,11 @@ def find_all_epub_files():
 _EPUB_INFO_CACHE = {}
 
 
+def _clean_parent_dir(path_str: str) -> str:
+    p_dir = str(Path(path_str).parent)
+    return '' if p_dir == '.' else p_dir
+
+
 def parse_epub_info(file_path):
     abs_path = os.path.abspath(file_path)
     try:
@@ -54,9 +58,7 @@ def parse_epub_info(file_path):
             container_root = ET.fromstring(container_data)
             rootfile = container_root.find('.//{urn:oasis:names:tc:opendocument:xmlns:container}rootfile')
             opf_path = rootfile.attrib['full-path']
-            opf_dir = str(Path(opf_path).parent)
-            if opf_dir == '.':
-                opf_dir = ''
+            opf_dir = _clean_parent_dir(opf_path)
 
             opf_data = zf.read(opf_path)
             opf_root = ET.fromstring(opf_data)
@@ -92,9 +94,7 @@ def parse_epub_info(file_path):
                 try:
                     ncx_data = zf.read(ncx_item['href'])
                     ncx_root = ET.fromstring(ncx_data)
-                    ncx_dir = str(Path(ncx_item['href']).parent)
-                    if ncx_dir == '.':
-                        ncx_dir = ''
+                    ncx_dir = _clean_parent_dir(ncx_item['href'])
                     for nav_point in ncx_root.findall('.//{http://www.daisy.org/z3986/2005/ncx/}navPoint'):
                         text_elem = nav_point.find('.//{http://www.daisy.org/z3986/2005/ncx/}text')
                         content_elem = nav_point.find('.//{http://www.daisy.org/z3986/2005/ncx/}content')
@@ -112,9 +112,7 @@ def parse_epub_info(file_path):
             if nav_item and not toc_map:
                 try:
                     nav_data = zf.read(nav_item['href']).decode('utf-8', errors='ignore')
-                    nav_dir = str(Path(nav_item['href']).parent)
-                    if nav_dir == '.':
-                        nav_dir = ''
+                    nav_dir = _clean_parent_dir(nav_item['href'])
                     links = re.findall(r'<a[^>]+href=["\']([^"\']+)["\'][^>]*>(.*?)</a>', nav_data, re.IGNORECASE | re.DOTALL)
                     for href_val, text_val in links:
                         clean_text = re.sub(r'<[^>]+>', '', text_val).strip()
@@ -202,4 +200,3 @@ def extract_chapter_text(file_path, href):
             return ''
     except Exception:
         return ''
-

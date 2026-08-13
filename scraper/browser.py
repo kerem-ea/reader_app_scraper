@@ -3,9 +3,28 @@ import random
 
 from constants import MIN_WORD_COUNT, REQUEST_TIMEOUT
 from fetch import record_failure, record_success
-from parsing import extract_content, extract_title_from_chapter_page, looks_like_challenge
+from parsing import extract_content, looks_like_challenge
 import paths
 from session import camoufox_ctx, wait_for_challenge_clear
+
+
+async def _handle_content_success(html, chapter_number, url, writer, stats, total, chapter_titles, settings, site_config):
+    text, wc = extract_content(html, site_config=site_config)
+    if wc >= MIN_WORD_COUNT:
+        await record_success(
+            chapter_number,
+            url,
+            text,
+            wc,
+            writer,
+            stats,
+            total,
+            chapter_titles,
+            source_html=html,
+        )
+        await asyncio.sleep(random.uniform(settings.min_delay, settings.delay_between))
+        return True
+    return False
 
 
 async def fetch_one_browser(
@@ -23,7 +42,7 @@ async def fetch_one_browser(
     chap_id = f"chapter-{chapter_number}"
     page_ok = True
 
-    async def try_click_challenge_button(page):
+    async def try_click_challenge_button(target_page):
         click_keywords = [
             "next",
             "continue",
@@ -33,12 +52,12 @@ async def fetch_one_browser(
             "submit",
             "challenge",
         ]
-        candidates = await page.query_selector_all("button, a, input[type=submit]")
+        candidates = await target_page.query_selector_all("button, a, input[type=submit]")
         if not candidates:
             return False
 
         try:
-            texts = await page.evaluate(
+            texts = await target_page.evaluate(
                 "els => els.map(el => (el.innerText || el.value || '').toLowerCase().trim())",
                 candidates,
             )
@@ -46,7 +65,7 @@ async def fetch_one_browser(
             texts = []
             for element in candidates:
                 try:
-                    text = await page.evaluate(
+                    text = await target_page.evaluate(
                         "el => (el.innerText || el.value || '').toLowerCase().trim()",
                         element,
                     )
@@ -59,7 +78,7 @@ async def fetch_one_browser(
                 print(f"[browser] {chap_id} trying click on challenge element: {text}")
                 try:
                     await element.click()
-                    await page.wait_for_timeout(1000)
+                    await target_page.wait_for_timeout(1000)
                     return True
                 except Exception as exc:
                     print(f"[browser] {chap_id} challenge click error: {exc}")
@@ -83,21 +102,9 @@ async def fetch_one_browser(
                     html = await wait_for_challenge_clear(page, timeout=20, extra_wait_on_timeout=1500)
 
                 if not looks_like_challenge(0, html):
-                    text, wc = extract_content(html, site_config=site_config)
-                    if wc >= MIN_WORD_COUNT:
-                        await record_success(
-                            chapter_number,
-                            url,
-                            text,
-                            wc,
-                            writer,
-                            stats,
-                            total,
-                            chapter_titles,
-                            source_html=html,
-                        )
-                        await asyncio.sleep(random.uniform(settings.min_delay, settings.delay_between))
+                    if await _handle_content_success(html, chapter_number, url, writer, stats, total, chapter_titles, settings, site_config):
                         return page_ok
+
                 await asyncio.sleep(random.uniform(*settings.challenge_wait))
                 try:
                     await page.close()
@@ -109,20 +116,7 @@ async def fetch_one_browser(
                 page_ok = False
                 break
 
-            text, wc = extract_content(html, site_config=site_config)
-            if wc >= MIN_WORD_COUNT:
-                await record_success(
-                    chapter_number,
-                    url,
-                    text,
-                    wc,
-                    writer,
-                    stats,
-                    total,
-                    chapter_titles,
-                    source_html=html,
-                )
-                await asyncio.sleep(random.uniform(settings.min_delay, settings.delay_between))
+            if await _handle_content_success(html, chapter_number, url, writer, stats, total, chapter_titles, settings, site_config):
                 return page_ok
 
             if attempt < settings.max_retries:
@@ -171,9 +165,8 @@ async def run_browser_mode(
             await wait_for_challenge_clear(page, timeout=30, extra_wait_on_timeout=1500)
             return page
 
-        for idx in range(page_count):
-            existing = None
-            page = await prepare_page(existing)
+        for _ in range(page_count):
+            page = await prepare_page()
             pages.append(page)
 
         page_pool = asyncio.Queue()
@@ -209,6 +202,5 @@ async def run_browser_mode(
                 await page_pool.put(page)
 
         await asyncio.gather(*(worker(chapter_number, url) for chapter_number, url in queue))
-
 
     print("[browser] Closed")

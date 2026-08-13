@@ -2,13 +2,16 @@ from html import escape
 from ebooklib import epub
 
 
+def _format_chapter_title(number: int, title: str) -> str:
+    return title if title.lower().startswith("chapter") else f"Chapter {number} - {title}"
+
+
 def create_chapter(chapter, style):
     number = chapter.get("chapter_number", 0)
     title = chapter.get("title", f"Chapter {number}")
     text = chapter.get("text", "")
 
-    chapter_title = f"Chapter {number} - {title}" if not title.lower().startswith("chapter") else title
-
+    chapter_title = _format_chapter_title(number, title)
     text = text.replace("\r\n", "\n").replace("\r", "\n")
 
     paragraphs = []
@@ -16,8 +19,7 @@ def create_chapter(chapter, style):
         paragraph = paragraph.strip()
         if not paragraph:
             continue
-        paragraph = escape(paragraph)
-        paragraph = paragraph.replace("\n", "<br/>")
+        paragraph = escape(paragraph).replace("\n", "<br/>")
         paragraphs.append(f"<p>{paragraph}</p>")
 
     content = f"""

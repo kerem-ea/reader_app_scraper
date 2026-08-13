@@ -1,14 +1,36 @@
+import json
 import re
+from pathlib import Path
 from selectolax.parser import HTMLParser
 
 from constants import (
-    CHAPTER_RE,
-    DEFAULT_HEADERS,
     GENERIC_TITLE_BLACKLIST,
     MIN_WORD_COUNT,
     TITLE_RE,
 )
 from site_config import SiteConfig, FREEWEBNOVEL
+
+
+def _paragraphs_to_text(nodes) -> tuple[str, int]:
+    parts = []
+    for node in nodes:
+        t = node.text(strip=True)
+        if t:
+            parts.append(t)
+    text = "\n\n".join(parts)
+    wc = len(text.split())
+    if wc >= MIN_WORD_COUNT:
+        return text, wc
+    return "", 0
+
+
+def _clean_chapter_title(text: str) -> str:
+    return re.sub(
+        r"^Chapter\s+\d+(?:\s*[:\-–—]\s*|\s+)",
+        "",
+        text,
+        flags=re.IGNORECASE,
+    ).strip(" .")
 
 
 def extract_content(html: str, site_config: SiteConfig | None = None) -> tuple[str, int]:
@@ -18,14 +40,9 @@ def extract_content(html: str, site_config: SiteConfig | None = None) -> tuple[s
 
     if match:
         tree = HTMLParser(match.group(1))
-        parts = [
-            p.text(strip=True)
-            for p in tree.css("p")
-            if p.text(strip=True)
-        ]
-        text = "\n\n".join(parts)
-        if len(text.split()) >= MIN_WORD_COUNT:
-            return text, len(text.split())
+        text, wc = _paragraphs_to_text(tree.css("p"))
+        if wc >= MIN_WORD_COUNT:
+            return text, wc
 
     tree = HTMLParser(html)
     candidates = []
@@ -36,14 +53,9 @@ def extract_content(html: str, site_config: SiteConfig | None = None) -> tuple[s
             break
 
     for node in candidates:
-        parts = [
-            p.text(strip=True)
-            for p in node.css("p")
-            if p.text(strip=True)
-        ]
-        text = "\n\n".join(parts)
-        if len(text.split()) >= MIN_WORD_COUNT:
-            return text, len(text.split())
+        text, wc = _paragraphs_to_text(node.css("p"))
+        if wc >= MIN_WORD_COUNT:
+            return text, wc
 
     return "", 0
 
@@ -61,12 +73,7 @@ def extract_title_from_chapter_page(html: str, site_config: SiteConfig | None = 
         match = TITLE_RE.search(text)
         if match:
             return match.group(2).strip(" .")
-        cleaned = re.sub(
-            r"^Chapter\s+\d+(?:\s*[:\-–—]\s*|\s+)",
-            "",
-            text,
-            flags=re.IGNORECASE,
-        ).strip(" .")
+        cleaned = _clean_chapter_title(text)
         if cleaned:
             return cleaned
 
@@ -102,7 +109,6 @@ def is_rate_limited(status_code: int) -> bool:
 
 def parse_retry_after(headers: dict[str, str]) -> float | None:
     value = headers.get("Retry-After")
-
     try:
         return float(value) if value else None
     except (ValueError, TypeError):
@@ -154,20 +160,11 @@ def parse_chapter_titles(html: str, site_config: SiteConfig | None = None) -> di
         if "chapter" not in raw_lower:
             continue
 
-        clean_text = re.sub(
-            r"^Chapter\s+\d+(?:\s*[:\-–—]\s*|\s+)",
-            "",
-            raw_text,
-            flags=re.IGNORECASE,
-        ).strip(" .")
+        clean_text = _clean_chapter_title(raw_text)
         if clean_text and not is_generic_chapter_title(clean_text):
             titles[chapter_number] = clean_text
 
     return titles
-
-
-import json
-from pathlib import Path
 
 
 def extract_novel_metadata(html: str, url: str, site_config: SiteConfig | None = None) -> dict:
@@ -257,5 +254,3 @@ def save_scraped_metadata(output_dir: Path, novel_slug: str, metadata: dict, sit
             json.dump(merged, f, indent=2)
     except Exception as e:
         print(f"[metadata] Warning: Could not write metadata.json: {e}")
-
-

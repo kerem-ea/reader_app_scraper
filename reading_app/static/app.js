@@ -17,6 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const loadingSpinner = $('#loadingSpinner')
 
   let chapters = [], current = 1, currentSite = null
+  let cachedProgress = null
 
   function applySettings() {
     contentEl.style.fontSize = fontSize.value + 'px'
@@ -193,11 +194,21 @@ document.addEventListener('DOMContentLoaded', () => {
     statusPercent.textContent = Math.round(scrolled) + '%'
   }
 
-  async function fetchProgress() {
-    try { return await (await fetch('/api/progress')).json() } catch { return null }
+  async function fetchProgress(site) {
+    try {
+      const url = site ? `/api/progress?site=${encodeURIComponent(site)}` : '/api/progress'
+      return await (await fetch(url)).json()
+    } catch {
+      return null
+    }
   }
 
   function saveProgress(site, num) {
+    if (!site || num == null) return
+    if (!cachedProgress) cachedProgress = { novels: {} }
+    if (!cachedProgress.novels) cachedProgress.novels = {}
+    cachedProgress.novels[site] = { chapter: num }
+    cachedProgress.site = site
     fetch('/api/progress', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -225,11 +236,13 @@ document.addEventListener('DOMContentLoaded', () => {
         siteSelect.appendChild(opt)
       })
 
-      const progress = await fetchProgress()
-      const resumeSite = progress?.site && data.some(s => s.id === progress.site) ? progress.site : null
+      cachedProgress = await fetchProgress()
+      const resumeSite = cachedProgress?.site && data.some(s => s.id === cachedProgress.site) ? cachedProgress.site : null
       currentSite = resumeSite || data[0].id
       siteSelect.value = currentSite
-      await loadChapters(currentSite, progress?.chapter)
+
+      const savedChapter = cachedProgress?.novels?.[currentSite]?.chapter || (currentSite === cachedProgress?.site ? cachedProgress?.chapter : null)
+      await loadChapters(currentSite, savedChapter)
     } catch (e) {
       console.error(e)
       titleEl.textContent = 'Error Loading Data'
@@ -261,8 +274,20 @@ document.addEventListener('DOMContentLoaded', () => {
         return
       }
 
-      const hasResume = resumeChapter != null && chapters.some(c => c.number === resumeChapter)
-      current = hasResume ? resumeChapter : chapters[0].number
+      let targetChapter = resumeChapter
+      if (targetChapter == null) {
+        if (cachedProgress?.novels?.[site]?.chapter != null) {
+          targetChapter = cachedProgress.novels[site].chapter
+        } else {
+          const novelProg = await fetchProgress(site)
+          if (novelProg?.chapter != null) {
+            targetChapter = novelProg.chapter
+          }
+        }
+      }
+
+      const hasResume = targetChapter != null && chapters.some(c => c.number === targetChapter)
+      current = hasResume ? targetChapter : chapters[0].number
       await loadChapter(current)
     } catch (e) {
       console.error(e)
@@ -358,7 +383,10 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   tocSelect.onchange = e => { current = parseInt(e.target.value); loadChapter(current) }
-  siteSelect.onchange = e => { loadChapters(e.target.value) }
+  siteSelect.onchange = async e => {
+    const selectedSite = e.target.value
+    await loadChapters(selectedSite)
+  }
 
   document.onkeydown = e => {
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return

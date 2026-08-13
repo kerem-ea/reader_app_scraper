@@ -34,10 +34,7 @@ def main():
         else:
             try:
                 choice = input(f"\nSelect a novel (1-{len(novels)}) [default 1]: ").strip()
-                if not choice:
-                    idx = 0
-                else:
-                    idx = int(choice) - 1
+                idx = int(choice) - 1 if choice else 0
                 if 0 <= idx < len(novels):
                     selected = novels[idx]
             except Exception:
@@ -91,7 +88,6 @@ def main():
         print("\nVolume EPUBs created:")
         for vnum, vtitle, vcount, vfile in volume_files:
             print(f"  Volume {vnum} ({vtitle}): {vcount} chapters -> {vfile.name}")
-
 
     print("\n========================================")
     print("EPUB CONVERSION COMPLETE")

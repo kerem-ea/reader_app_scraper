@@ -39,8 +39,11 @@ class SiteConfig:
     )
     cover_css_selectors: tuple[str, ...] = (
         "meta[property='og:image']",
+        "meta[name='twitter:image']",
         "div.pic img",
         "div.book-img img",
+        "div.imgbox img",
+        "div.books-img img",
         "img.cover",
     )
     title_main_selectors: tuple[str, ...] = (
@@ -49,7 +52,6 @@ class SiteConfig:
         "h1.book-name",
         "h1",
     )
-
 
     def novel_url(self, novel_name: str) -> str:
         return self.novel_url_template.format(novel=novel_name)
@@ -80,7 +82,6 @@ FREEWEBNOVEL = SiteConfig(
     novel_url_template="https://freewebnovel.com/novel/{novel}",
     chapter_url_template="https://freewebnovel.com/novel/{novel}/chapter-{chapter}",
 )
-
 
 
 class SiteRegistry:
@@ -118,7 +119,3 @@ class SiteRegistry:
             "Could not determine the novel site or slug from input. "
             "Use a supported novel URL or a valid slug."
         )
-
-    @classmethod
-    def supported_sites(cls) -> list[str]:
-        return sorted({site.name for site in cls._sites.values()})

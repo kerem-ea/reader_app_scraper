@@ -20,4 +20,3 @@ def find_scraped_novels():
                     "json_file": json_files[0]
                 })
     return novels
-

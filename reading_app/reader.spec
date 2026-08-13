@@ -26,6 +26,7 @@ a = Analysis(
         'window_manager',
         'epub_parser',
         'paths',
+        'multi_progress',
     ] + wv_hiddenimports,
     hookspath=[],
     hooksconfig={},
@@ -61,4 +62,3 @@ exe = EXE(
     entitlements_file=None,
     icon='weaver.ico',
 )
-

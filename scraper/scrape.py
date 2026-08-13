@@ -1,5 +1,4 @@
 import asyncio
-import re
 import sys
 import time
 
@@ -10,6 +9,7 @@ from browser import run_browser_mode
 import paths
 from progress import ProgressWriter, compile_json, load_done
 from site_config import SiteRegistry, SiteConfig
+from cover import download_novel_cover
 
 
 def collect_inputs() -> tuple[SiteConfig, str, int, int, str]:
@@ -61,6 +61,21 @@ async def main() -> None:
     print(f"Chapters: {start_chapter}-{end_chapter}")
     print(f"Folder: {paths.OUT_JSON.parent}")
     print()
+
+    print("Fetching novel cover...")
+    try:
+        cover_success = download_novel_cover(
+            site_config,
+            novel_name,
+            paths.NOVEL_URL,
+            paths.NOVEL_DIR
+        )
+        if cover_success:
+            print("Cover downloaded successfully.")
+        else:
+            print("Failed to download cover image.")
+    except Exception as e:
+        print(f"Error downloading cover: {e}")
 
     chapter_titles = await get_chapter_titles(site_config=site_config)
     done = load_done(paths.TEMP_JSONL)
@@ -159,4 +174,3 @@ if __name__ == "__main__":
         print(f"\n[!] Scraping failed: {exc}")
         print("[!] Note: If Camoufox browser binaries are missing, run 'camoufox fetch'.")
         sys.exit(1)
-

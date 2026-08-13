@@ -28,8 +28,8 @@ venv.bak/
 
 *.epub
 
-!last_read.txt
-!reading_app/last_read.txt
+!last_read.json
+!reading_app/last_read.json
 
 data/*
 !data/.gitkeep
@@ -40,5 +40,6 @@ data/*
 scraper/data/*
 !scraper/data/.gitkeep
 
-
 reader.exe
+
+opencode.json

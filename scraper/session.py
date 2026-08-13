@@ -1,5 +1,4 @@
 import asyncio
-import time
 
 from curl_cffi.requests import AsyncSession
 from camoufox.async_api import AsyncCamoufox

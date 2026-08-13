@@ -1,5 +1,3 @@
-import asyncio
-
 from parsing import extract_novel_metadata, parse_chapter_titles, save_scraped_metadata
 from session import camoufox_ctx, wait_for_challenge_clear
 from site_config import SiteConfig, FREEWEBNOVEL
@@ -36,7 +34,6 @@ async def get_chapter_titles(site_config: SiteConfig | None = None) -> dict[int,
             site_name=config.name,
             novel_url=paths.NOVEL_URL,
         )
-
 
         select_selector = config.catalog_select_selector
         options = await page.query_selector_all(f"{select_selector} option")
@@ -84,4 +81,3 @@ async def get_chapter_titles(site_config: SiteConfig | None = None) -> dict[int,
 
     print(f"[catalog] Total chapter titles cached: {len(titles):,}")
     return titles
-
