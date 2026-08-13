@@ -39,12 +39,13 @@ def collect_inputs() -> tuple[SiteConfig, str, int, int, str]:
         raise ValueError("End chapter must be >= start chapter.")
 
     mode_choice = None
-    while mode_choice not in ("1", "2"):
+    while mode_choice not in ("1", "2", "3"):
         mode_choice = input(
             "Choose mode:\n"
-            "  1) MODE 1 then MODE 2 for failures\n"
-            "  2) MODE 2 only, faster browser-only run\n"
-            "Enter 1 or 2: "
+            "  1) MODE 1 (Fast HTTP) then MODE 2 for failures\n"
+            "  2) MODE 2 (Browser-only)\n"
+            "  3) MODE 3 (Slow HTTP) then MODE 2 for failures\n"
+            "Enter 1, 2, or 3: "
         ).strip()
 
     return site_config, novel_name, start_chapter, end_chapter, mode_choice
@@ -61,7 +62,7 @@ async def main() -> None:
     print(f"Folder: {paths.OUT_JSON.parent}")
     print()
 
-    chapter_titles = await get_chapter_titles()
+    chapter_titles = await get_chapter_titles(site_config=site_config)
     done = load_done(paths.TEMP_JSONL)
 
     queue = [
@@ -81,19 +82,21 @@ async def main() -> None:
     stats = {"done": 0, "failed": 0, "t0": time.time()}
 
     try:
-        if selected_mode == "1":
+        if selected_mode in ("1", "3"):
+            mode_key = "fast" if selected_mode == "1" else "slow"
+            mode_label = "MODE 1: FAST" if selected_mode == "1" else "MODE 3: SLOW"
             print()
-            print("MODE 1: FAST")
+            print(mode_label)
             await run_fast_mode(
                 queue,
                 writer,
                 stats,
                 len(queue),
-                Settings(mode="fast", **MODE_SETTINGS["fast"]),
+                Settings(mode=mode_key, **MODE_SETTINGS[mode_key]),
                 chapter_titles,
+                site_config=site_config,
             )
             writer.flush()
-            compile_json(paths.TEMP_JSONL, paths.OUT_JSON)
 
             if failed_chapters:
                 retry_queue = [
@@ -109,14 +112,14 @@ async def main() -> None:
                     len(retry_queue),
                     Settings(mode="browser-only", **MODE_SETTINGS["browser_only"]),
                     chapter_titles,
+                    site_config=site_config,
                 )
                 writer.flush()
-                compile_json(paths.TEMP_JSONL, paths.OUT_JSON)
                 recovered = len(retry_queue) - len(failed_chapters)
                 print(f"Mode 2 recovered: {recovered}")
                 print(f"Still failed: {len(failed_chapters)}")
             else:
-                print("Mode 1 completed with no failures.")
+                print(f"{mode_label} completed with no failures.")
         else:
             print()
             print("MODE 2: BROWSER-ONLY")
@@ -127,9 +130,9 @@ async def main() -> None:
                 len(queue),
                 Settings(mode="browser-only", **MODE_SETTINGS["browser_only"]),
                 chapter_titles,
+                site_config=site_config,
             )
             writer.flush()
-            compile_json(paths.TEMP_JSONL, paths.OUT_JSON)
             print(f"Mode 2 completed. Failed: {len(failed_chapters)}")
     finally:
         writer.close()
@@ -147,4 +150,13 @@ async def main() -> None:
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print("\n[!] Scraping interrupted by user.")
+        sys.exit(0)
+    except Exception as exc:
+        print(f"\n[!] Scraping failed: {exc}")
+        print("[!] Note: If Camoufox browser binaries are missing, run 'camoufox fetch'.")
+        sys.exit(1)
+

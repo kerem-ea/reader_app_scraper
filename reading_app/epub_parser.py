@@ -4,7 +4,9 @@ import zipfile
 import xml.etree.ElementTree as ET
 from html import unescape
 from pathlib import Path
+from selectolax.parser import HTMLParser
 from paths import find_data_root, HERE
+
 
 
 def find_all_epub_files():
@@ -32,7 +34,20 @@ def find_all_epub_files():
     return found
 
 
+_EPUB_INFO_CACHE = {}
+
+
 def parse_epub_info(file_path):
+    abs_path = os.path.abspath(file_path)
+    try:
+        current_mtime = os.path.getmtime(abs_path)
+        if abs_path in _EPUB_INFO_CACHE:
+            cached_mtime, cached_title, cached_chapters = _EPUB_INFO_CACHE[abs_path]
+            if cached_mtime == current_mtime:
+                return cached_title, cached_chapters
+    except Exception:
+        current_mtime = 0.0
+
     try:
         with zipfile.ZipFile(file_path, 'r') as zf:
             container_data = zf.read('META-INF/container.xml')
@@ -152,39 +167,39 @@ def parse_epub_info(file_path):
                 })
                 chap_num += 1
 
+            _EPUB_INFO_CACHE[abs_path] = (current_mtime, title, chapters)
             return title, chapters
     except Exception:
-        return Path(file_path).stem, []
+        fallback_title = Path(file_path).stem
+        return fallback_title, []
 
 
 def extract_chapter_text(file_path, href):
     try:
         with zipfile.ZipFile(file_path, 'r') as zf:
             content = zf.read(href).decode('utf-8', errors='ignore')
+            tree = HTMLParser(content)
 
-            body_m = re.search(r'<body[^>]*>(.*?)</body>', content, re.IGNORECASE | re.DOTALL)
-            if body_m:
-                html_body = body_m.group(1)
-            else:
-                html_body = content
+            for header in tree.css('h1, h2, h3, h4, h5, h6'):
+                header.decompose()
 
-            html_body = re.sub(r'<h[1-6][^>]*>.*?</h[1-6]>', '', html_body, flags=re.IGNORECASE | re.DOTALL)
-
-            paragraphs = re.findall(r'<p[^>]*>(.*?)</p>', html_body, re.IGNORECASE | re.DOTALL)
-            text_list = []
-            if paragraphs:
-                for p in paragraphs:
-                    p_text = re.sub(r'<br\s*/?>', '\n', p, flags=re.IGNORECASE)
-                    p_text = re.sub(r'<[^>]+>', '', p_text)
-                    p_text = unescape(p_text).strip()
+            p_nodes = tree.css('p')
+            if p_nodes:
+                text_list = []
+                for p in p_nodes:
+                    p_text = unescape(p.text(strip=True))
                     if p_text:
                         text_list.append(p_text)
-                return '\n\n'.join(text_list)
-            else:
-                text = re.sub(r'<br\s*/?>', '\n', html_body, flags=re.IGNORECASE)
-                text = re.sub(r'<[^>]+>', '', text)
-                text = unescape(text)
-                lines = [line.strip() for line in text.splitlines() if line.strip()]
+                if text_list:
+                    return '\n\n'.join(text_list)
+
+            body = tree.body or tree.html
+            if body:
+                raw_text = unescape(body.text())
+                lines = [line.strip() for line in raw_text.splitlines() if line.strip()]
                 return '\n\n'.join(lines)
+
+            return ''
     except Exception:
         return ''
+

@@ -36,8 +36,9 @@ data/*
 !data/shadow-slave/
 !data/shadow-slave/*.json
 !data/shadow-slave/*.jsonl
-data/**/*.png
+!data/shadow-slave/cover.png
 scraper/data/*
 !scraper/data/.gitkeep
+
 
 reader.exe

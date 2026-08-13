@@ -5,12 +5,16 @@ from constants import (
     CHAPTER_RE,
     DEFAULT_HEADERS,
     GENERIC_TITLE_BLACKLIST,
+    MIN_WORD_COUNT,
     TITLE_RE,
 )
+from site_config import SiteConfig, FREEWEBNOVEL
 
 
-def extract_content(html: str) -> tuple[str, int]:
-    match = CHAPTER_RE.search(html)
+def extract_content(html: str, site_config: SiteConfig | None = None) -> tuple[str, int]:
+    config = site_config or FREEWEBNOVEL
+    chapter_regex = re.compile(config.chapter_regex, re.DOTALL | re.IGNORECASE)
+    match = chapter_regex.search(html)
 
     if match:
         tree = HTMLParser(match.group(1))
@@ -20,17 +24,16 @@ def extract_content(html: str) -> tuple[str, int]:
             if p.text(strip=True)
         ]
         text = "\n\n".join(parts)
-        if len(text.split()) > 50:
+        if len(text.split()) >= MIN_WORD_COUNT:
             return text, len(text.split())
 
     tree = HTMLParser(html)
-    candidates = (
-        tree.css("div.chapter-content")
-        or tree.css("div#chapter-content")
-        or tree.css("div.reading-content")
-        or tree.css("article")
-        or tree.css("div")
-    )
+    candidates = []
+    for sel in config.content_css_selectors:
+        res = tree.css(sel)
+        if res:
+            candidates.extend(res)
+            break
 
     for node in candidates:
         parts = [
@@ -39,22 +42,16 @@ def extract_content(html: str) -> tuple[str, int]:
             if p.text(strip=True)
         ]
         text = "\n\n".join(parts)
-        if len(text.split()) > 50:
+        if len(text.split()) >= MIN_WORD_COUNT:
             return text, len(text.split())
 
     return "", 0
 
 
-def extract_title_from_chapter_page(html: str) -> str | None:
+def extract_title_from_chapter_page(html: str, site_config: SiteConfig | None = None) -> str | None:
+    config = site_config or FREEWEBNOVEL
     tree = HTMLParser(html)
-    for selector in (
-        "h1",
-        "h2",
-        "div.chapter-title",
-        "div#chapter-title",
-        "div#chapter-name",
-        "title",
-    ):
+    for selector in config.title_css_selectors:
         node = tree.css_first(selector)
         if not node:
             continue
@@ -125,13 +122,14 @@ def is_generic_chapter_title(text: str) -> bool:
     return False
 
 
-def parse_chapter_titles(html: str) -> dict[int, str]:
+def parse_chapter_titles(html: str, site_config: SiteConfig | None = None) -> dict[int, str]:
+    config = site_config or FREEWEBNOVEL
     titles = {}
     tree = HTMLParser(html)
 
     for link in tree.css("a"):
         href = (link.attributes.get("href") or "").strip() if link.attributes else ""
-        if not href or "/chapter-" not in href:
+        if not href or config.chapter_link_href_pattern not in href:
             continue
 
         title_attr = (link.attributes.get("title") or "").strip() if link.attributes else ""
@@ -140,7 +138,7 @@ def parse_chapter_titles(html: str) -> dict[int, str]:
         raw_text = re.sub(r"^[^\w\d]+", "", raw_text).strip()
         raw_lower = raw_text.lower()
 
-        href_match = re.search(r"/chapter-(\d+)", href, re.IGNORECASE)
+        href_match = re.search(config.chapter_link_regex, href, re.IGNORECASE)
         if not href_match:
             continue
 
@@ -166,3 +164,98 @@ def parse_chapter_titles(html: str) -> dict[int, str]:
             titles[chapter_number] = clean_text
 
     return titles
+
+
+import json
+from pathlib import Path
+
+
+def extract_novel_metadata(html: str, url: str, site_config: SiteConfig | None = None) -> dict:
+    config = site_config or FREEWEBNOVEL
+    tree = HTMLParser(html)
+    metadata = {}
+
+    title = None
+    for sel in config.title_main_selectors:
+        node = tree.css_first(sel)
+        if node and node.text(strip=True):
+            title = node.text(strip=True)
+            break
+
+    if not title:
+        og_title = tree.css_first("meta[property='og:title']")
+        if og_title and og_title.attributes.get("content"):
+            title = og_title.attributes.get("content").strip()
+
+    if title:
+        metadata["title"] = title
+
+    author = None
+    for sel in config.author_css_selectors:
+        node = tree.css_first(sel)
+        if node and node.text(strip=True):
+            raw_author = node.text(strip=True)
+            cleaned = re.sub(r"^Author\s*:\s*", "", raw_author, flags=re.IGNORECASE).strip()
+            if cleaned:
+                author = cleaned
+                break
+
+    if not author:
+        og_author = tree.css_first("meta[property='og:novel:author']") or tree.css_first("meta[name='author']")
+        if og_author and og_author.attributes.get("content"):
+            author = og_author.attributes.get("content").strip()
+
+    if author:
+        metadata["author"] = author
+
+    cover_url = None
+    for sel in config.cover_css_selectors:
+        node = tree.css_first(sel)
+        if not node:
+            continue
+        if sel.startswith("meta"):
+            src = node.attributes.get("content")
+        else:
+            src = node.attributes.get("src") or node.attributes.get("data-src")
+        if src:
+            cover_url = src.strip()
+            if cover_url.startswith("//"):
+                cover_url = "https:" + cover_url
+            break
+
+    if cover_url:
+        metadata["cover_url"] = cover_url
+
+    return metadata
+
+
+def save_scraped_metadata(output_dir: Path, novel_slug: str, metadata: dict, site_name: str, novel_url: str) -> None:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    meta_file = output_dir / "metadata.json"
+
+    existing = {}
+    if meta_file.exists():
+        try:
+            with open(meta_file, "r", encoding="utf-8") as f:
+                existing = json.load(f)
+        except Exception:
+            existing = {}
+
+    title = metadata.get("title") or existing.get("title") or novel_slug.replace("-", " ").title()
+    author = existing.get("author") or metadata.get("author") or "WebNovel Author"
+
+    merged = {
+        "title": title,
+        "author": author,
+        "site": site_name,
+        "url": novel_url,
+        "volumes": existing.get("volumes", []),
+    }
+
+    try:
+        with open(meta_file, "w", encoding="utf-8") as f:
+            json.dump(merged, f, indent=2)
+    except Exception as e:
+        print(f"[metadata] Warning: Could not write metadata.json: {e}")
+
+

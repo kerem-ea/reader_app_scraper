@@ -1,7 +1,7 @@
 import asyncio
 import random
 
-from constants import REQUEST_TIMEOUT
+from constants import MIN_WORD_COUNT, REQUEST_TIMEOUT
 from fetch import record_failure, record_success
 from parsing import extract_content, extract_title_from_chapter_page, looks_like_challenge
 import paths
@@ -18,6 +18,7 @@ async def fetch_one_browser(
     total,
     settings,
     chapter_titles,
+    site_config=None,
 ):
     chap_id = f"chapter-{chapter_number}"
     page_ok = True
@@ -82,8 +83,8 @@ async def fetch_one_browser(
                     html = await wait_for_challenge_clear(page, timeout=20, extra_wait_on_timeout=1500)
 
                 if not looks_like_challenge(0, html):
-                    text, wc = extract_content(html)
-                    if wc > 50:
+                    text, wc = extract_content(html, site_config=site_config)
+                    if wc >= MIN_WORD_COUNT:
                         await record_success(
                             chapter_number,
                             url,
@@ -108,8 +109,8 @@ async def fetch_one_browser(
                 page_ok = False
                 break
 
-            text, wc = extract_content(html)
-            if wc > 50:
+            text, wc = extract_content(html, site_config=site_config)
+            if wc >= MIN_WORD_COUNT:
                 await record_success(
                     chapter_number,
                     url,
@@ -151,6 +152,7 @@ async def run_browser_mode(
     total,
     settings,
     chapter_titles,
+    site_config=None,
 ):
     print("[browser] Launching Camoufox...")
 
@@ -194,6 +196,7 @@ async def run_browser_mode(
                     total,
                     settings,
                     chapter_titles,
+                    site_config=site_config,
                 )
             finally:
                 if getattr(page, "is_closed", lambda: False)() or not page_ok:
@@ -206,5 +209,6 @@ async def run_browser_mode(
                 await page_pool.put(page)
 
         await asyncio.gather(*(worker(chapter_number, url) for chapter_number, url in queue))
+
 
     print("[browser] Closed")

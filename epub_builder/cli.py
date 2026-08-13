@@ -1,6 +1,6 @@
 import json
 import sys
-from epub_builder.constants import VOLUMES
+from epub_builder.constants import get_novel_metadata
 from epub_builder.cover import prepare_cover
 from epub_builder.builder import create_full_book, create_volume_book
 from epub_builder.finder import find_scraped_novels
@@ -49,7 +49,11 @@ def main():
     novel_slug = selected["slug"]
     json_path = selected["json_file"]
     output_dir = selected["dir"]
-    novel_title = novel_slug.replace("-", " ").title()
+
+    metadata = get_novel_metadata(output_dir, novel_slug)
+    novel_title = metadata.get("title", novel_slug.replace("-", " ").title())
+    author = metadata.get("author", "WebNovel Author")
+    volumes = metadata.get("volumes", [])
 
     print(f"\nReading {json_path.name}...")
     with open(json_path, "r", encoding="utf-8") as file:
@@ -63,16 +67,15 @@ def main():
         chapters = []
 
     chapters.sort(key=lambda ch: ch.get("chapter_number", 0))
-    print(f"Found {len(chapters)} chapters for {novel_title}")
+    print(f"Found {len(chapters)} chapters for {novel_title} by {author}")
 
     cover_path = prepare_cover(output_dir)
-    is_shadow_slave = (novel_slug.lower() == "shadow-slave")
 
-    full_book = create_full_book(novel_title, chapters, cover_path, output_dir, is_shadow_slave)
+    full_book = create_full_book(novel_title, chapters, cover_path, output_dir, metadata=metadata)
 
-    if is_shadow_slave:
+    if volumes:
         volume_files = []
-        for volume_number, volume_title, start, end in VOLUMES:
+        for volume_number, volume_title, start, end in volumes:
             volume_chapters = [
                 ch for ch in chapters
                 if start <= ch.get("chapter_number", 0) <= end
@@ -80,12 +83,15 @@ def main():
             if not volume_chapters:
                 continue
 
-            vol_file = create_volume_book(volume_number, volume_title, volume_chapters, cover_path, output_dir)
+            vol_file = create_volume_book(
+                novel_title, volume_number, volume_title, volume_chapters, cover_path, output_dir, author=author
+            )
             volume_files.append((volume_number, volume_title, len(volume_chapters), vol_file))
 
         print("\nVolume EPUBs created:")
         for vnum, vtitle, vcount, vfile in volume_files:
             print(f"  Volume {vnum} ({vtitle}): {vcount} chapters -> {vfile.name}")
+
 
     print("\n========================================")
     print("EPUB CONVERSION COMPLETE")

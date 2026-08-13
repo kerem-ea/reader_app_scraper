@@ -1,13 +1,16 @@
 from ebooklib import epub
-from epub_builder.constants import VOLUMES
 from epub_builder.cover import add_cover, create_style
 from epub_builder.chapters import create_chapter, create_volume_page
 
 
-def create_full_book(novel_title, chapters, cover_path, output_dir, is_shadow_slave=False):
+def create_full_book(novel_title, chapters, cover_path, output_dir, metadata=None):
     print()
     print(f"Creating full {novel_title} EPUB...")
     print("----------------------------------------")
+
+    metadata = metadata or {}
+    author = metadata.get("author", "WebNovel Author")
+    volumes = metadata.get("volumes", [])
 
     book = epub.EpubBook()
     slug = novel_title.lower().replace(" ", "-")
@@ -15,7 +18,6 @@ def create_full_book(novel_title, chapters, cover_path, output_dir, is_shadow_sl
     book.set_identifier(slug)
     book.set_title(novel_title)
     book.set_language("en")
-    author = "Guiltythree" if is_shadow_slave else "WebNovel Author"
     book.add_author(author)
 
     if cover_path:
@@ -33,8 +35,8 @@ def create_full_book(novel_title, chapters, cover_path, output_dir, is_shadow_sl
         book.add_item(item)
         chapter_items[number] = item
 
-    if is_shadow_slave:
-        for volume_number, volume_title, start, end in VOLUMES:
+    if volumes:
+        for volume_number, volume_title, start, end in volumes:
             volume_chapters = [
                 ch for ch in chapters
                 if start <= ch.get("chapter_number", 0) <= end
@@ -47,7 +49,7 @@ def create_full_book(novel_title, chapters, cover_path, output_dir, is_shadow_sl
             volume_items[volume_number] = volume_item
 
         toc_entries = []
-        for volume_number, volume_title, start, end in VOLUMES:
+        for volume_number, volume_title, start, end in volumes:
             if volume_number not in volume_items:
                 continue
 
@@ -79,7 +81,7 @@ def create_full_book(novel_title, chapters, cover_path, output_dir, is_shadow_sl
         book.add_item(epub.EpubNav())
 
         spine = ["nav"]
-        for volume_number, volume_title, start, end in VOLUMES:
+        for volume_number, volume_title, start, end in volumes:
             if volume_number not in volume_items:
                 continue
             spine.append(volume_items[volume_number])
@@ -112,15 +114,16 @@ def create_full_book(novel_title, chapters, cover_path, output_dir, is_shadow_sl
     return output_file
 
 
-def create_volume_book(volume_number, volume_title, volume_chapters, cover_path, output_dir):
+def create_volume_book(novel_title, volume_number, volume_title, volume_chapters, cover_path, output_dir, author="WebNovel Author"):
     volume_name = f"Volume {volume_number} - {volume_title}"
     book = epub.EpubBook()
 
-    identifier = f"shadow-slave-volume-{volume_number}"
+    slug = novel_title.lower().replace(" ", "-")
+    identifier = f"{slug}-volume-{volume_number}"
     book.set_identifier(identifier)
-    book.set_title(volume_name)
+    book.set_title(f"{novel_title} - {volume_name}")
     book.set_language("en")
-    book.add_author("Guiltythree")
+    book.add_author(author)
 
     if cover_path:
         add_cover(book, cover_path)
@@ -155,6 +158,7 @@ def create_volume_book(volume_number, volume_title, volume_chapters, cover_path,
         .replace("*", "-").replace("?", "-").replace('"', "'")
         .replace("<", "-").replace(">", "-").replace("|", "-")
     )
-    output_file = output_dir / f"Shadow Slave - Volume {volume_number} - {safe_title}.epub"
+    output_file = output_dir / f"{novel_title} - Volume {volume_number} - {safe_title}.epub"
     epub.write_epub(str(output_file), book)
     return output_file
+

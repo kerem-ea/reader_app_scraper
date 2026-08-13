@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent / "data"
@@ -17,6 +18,48 @@ VOLUMES = [
     (11, "The Song of Ariadne", 2721, 3000),
     (12, "Untitled", 3001, 999999),
 ]
+
+DEFAULT_KNOWN_METADATA = {
+    "shadow-slave": {
+        "author": "Guiltythree",
+        "volumes": VOLUMES,
+    }
+}
+
+
+def get_novel_metadata(output_dir: Path, novel_slug: str) -> dict:
+    meta_file = output_dir / "metadata.json"
+    if meta_file.exists():
+        try:
+            with open(meta_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            vols = [
+                (v["number"], v["title"], v["start"], v["end"])
+                for v in data.get("volumes", [])
+            ]
+            return {
+                "title": data.get("title", novel_slug.replace("-", " ").title()),
+                "author": data.get("author", "WebNovel Author"),
+                "volumes": vols,
+            }
+        except Exception:
+            pass
+
+    slug_key = novel_slug.lower()
+    if slug_key in DEFAULT_KNOWN_METADATA:
+        known = DEFAULT_KNOWN_METADATA[slug_key]
+        return {
+            "title": novel_slug.replace("-", " ").title(),
+            "author": known.get("author", "WebNovel Author"),
+            "volumes": known.get("volumes", []),
+        }
+
+    return {
+        "title": novel_slug.replace("-", " ").title(),
+        "author": "WebNovel Author",
+        "volumes": [],
+    }
+
 
 CSS = """
 body {

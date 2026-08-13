@@ -4,6 +4,7 @@ import time
 from constants import (
     DEFAULT_HEADERS,
     FAIL_STREAK_LIMIT,
+    MIN_WORD_COUNT,
     RATE_LIMIT_STREAK_LIMIT,
     REQUEST_TIMEOUT,
     REBOOTSTRAP_EVERY_N,
@@ -162,6 +163,7 @@ async def fetch_one(
     refresh_lock: asyncio.Lock,
     settings,
     chapter_titles: dict[int, str],
+    site_config=None,
 ):
     chap_id = f"chapter-{chapter_number}"
     async with sem:
@@ -191,8 +193,8 @@ async def fetch_one(
             challenge = looks_like_challenge(response.status_code, response.text)
 
             if response.status_code == 200 and not challenge:
-                text, wc = extract_content(response.text)
-                if wc > 20:
+                text, wc = extract_content(response.text, site_config=site_config)
+                if wc >= MIN_WORD_COUNT:
                     await record_success(
                         chapter_number,
                         url,
@@ -229,6 +231,7 @@ async def run_fast_mode(
     total: int,
     settings,
     chapter_titles: dict[int, str],
+    site_config=None,
 ):
     session_data = await bootstrap_with_retry()
     if session_data is None:
@@ -279,10 +282,12 @@ async def run_fast_mode(
                     refresh_lock,
                     settings,
                     chapter_titles,
+                    site_config=site_config,
                 )
                 for chapter_number, url in queue
             )
         )
+
     finally:
         watcher_task.cancel()
         try:

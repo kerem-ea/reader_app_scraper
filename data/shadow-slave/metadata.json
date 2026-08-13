@@ -1,0 +1,80 @@
+{
+  "title": "Shadow Slave",
+  "author": "Guiltythree",
+  "site": "freewebnovel",
+  "url": "https://freewebnovel.com/novel/shadow-slave",
+  "volumes": [
+    {
+      "number": 1,
+      "title": "Child of Shadows",
+      "start": 1,
+      "end": 95
+    },
+    {
+      "number": 2,
+      "title": "Demon of Change",
+      "start": 96,
+      "end": 350
+    },
+    {
+      "number": 3,
+      "title": "Prince of Nothing",
+      "start": 351,
+      "end": 600
+    },
+    {
+      "number": 4,
+      "title": "Chain Breaker",
+      "start": 601,
+      "end": 750
+    },
+    {
+      "number": 5,
+      "title": "Dread Night",
+      "start": 751,
+      "end": 1060
+    },
+    {
+      "number": 6,
+      "title": "All the Devils Are Here",
+      "start": 1061,
+      "end": 1230
+    },
+    {
+      "number": 7,
+      "title": "The Tomb of Ariel",
+      "start": 1231,
+      "end": 1590
+    },
+    {
+      "number": 8,
+      "title": "Lord of Shadows",
+      "start": 1591,
+      "end": 1840
+    },
+    {
+      "number": 9,
+      "title": "Throne of War",
+      "start": 1841,
+      "end": 2260
+    },
+    {
+      "number": 10,
+      "title": "Dark Lord's Dreadful Travelogue",
+      "start": 2261,
+      "end": 2720
+    },
+    {
+      "number": 11,
+      "title": "The Song of Ariadne",
+      "start": 2721,
+      "end": 3000
+    },
+    {
+      "number": 12,
+      "title": "Untitled",
+      "start": 3001,
+      "end": 999999
+    }
+  ]
+}

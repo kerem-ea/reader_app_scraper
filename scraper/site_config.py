@@ -10,6 +10,46 @@ class SiteConfig:
     novel_url_template: str
     chapter_url_template: str
     novel_path_regex: str = r"/novel/([^/?#]+)"
+    chapter_regex: str = r'<div\s+class="chapter-start"\s*>(.*?)<div\s+class="chapter-end"\s*>'
+    content_css_selectors: tuple[str, ...] = (
+        "div.chapter-content",
+        "div#chapter-content",
+        "div.reading-content",
+        "article",
+        "div",
+    )
+    title_css_selectors: tuple[str, ...] = (
+        "h1",
+        "h2",
+        "div.chapter-title",
+        "div#chapter-title",
+        "div#chapter-name",
+        "title",
+    )
+    catalog_select_selector: str = "#indexselect"
+    chapter_link_href_pattern: str = "/chapter-"
+    chapter_link_regex: str = r"/chapter-(\d+)"
+    catalog_page_size: int = 40
+    author_css_selectors: tuple[str, ...] = (
+        "span.author a",
+        "div.property a[href*='/author/']",
+        "a[href*='/author/']",
+        "span[itemprop='author']",
+        "div.author",
+    )
+    cover_css_selectors: tuple[str, ...] = (
+        "meta[property='og:image']",
+        "div.pic img",
+        "div.book-img img",
+        "img.cover",
+    )
+    title_main_selectors: tuple[str, ...] = (
+        "h1.tit",
+        "h3.tit",
+        "h1.book-name",
+        "h1",
+    )
+
 
     def novel_url(self, novel_name: str) -> str:
         return self.novel_url_template.format(novel=novel_name)
@@ -40,6 +80,7 @@ FREEWEBNOVEL = SiteConfig(
     novel_url_template="https://freewebnovel.com/novel/{novel}",
     chapter_url_template="https://freewebnovel.com/novel/{novel}/chapter-{chapter}",
 )
+
 
 
 class SiteRegistry:

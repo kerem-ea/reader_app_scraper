@@ -4,16 +4,34 @@ from epub_builder.constants import COVER_FILE, CSS
 
 
 def prepare_cover(output_dir):
-    cover_path = output_dir / "cover.png"
+    dest_path = output_dir / "cover.png"
+
+    for candidate in [
+        output_dir / "cover.png",
+        output_dir / "cover.jpg",
+        output_dir / "cover.jpeg",
+        output_dir / "cover.webp",
+    ]:
+        if candidate.exists():
+            try:
+                image = Image.open(candidate)
+                image = image.convert("RGB")
+                image.save(dest_path, "PNG")
+                return dest_path
+            except Exception:
+                pass
+
     if COVER_FILE.exists():
         try:
             image = Image.open(COVER_FILE)
             image = image.convert("RGB")
-            image.save(cover_path, "PNG")
-            return cover_path
+            image.save(dest_path, "PNG")
+            return dest_path
         except Exception:
             pass
+
     return None
+
 
 
 def add_cover(book, cover_path):
