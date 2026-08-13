@@ -1,0 +1,96 @@
+import json
+import sys
+from epub_builder.constants import VOLUMES
+from epub_builder.cover import prepare_cover
+from epub_builder.builder import create_full_book, create_volume_book
+from epub_builder.finder import find_scraped_novels
+
+
+def main():
+    novels = find_scraped_novels()
+    if not novels:
+        print("No scraped novel data found in data/ directory.")
+        print("Please run the scraper first (python scraper/scrape.py).")
+        return
+
+    print("========================================")
+    print("Available Scraped Novels:")
+    print("========================================")
+    for idx, nov in enumerate(novels, 1):
+        print(f"[{idx}] {nov['slug'].replace('-', ' ').title()} ({nov['slug']})")
+
+    selected = None
+    if len(sys.argv) > 1:
+        arg_slug = sys.argv[1].strip().lower()
+        for nov in novels:
+            if nov["slug"].lower() == arg_slug:
+                selected = nov
+                break
+
+    if not selected:
+        if len(novels) == 1:
+            selected = novels[0]
+            print(f"\nAutomatically selected: {selected['slug']}")
+        else:
+            try:
+                choice = input(f"\nSelect a novel (1-{len(novels)}) [default 1]: ").strip()
+                if not choice:
+                    idx = 0
+                else:
+                    idx = int(choice) - 1
+                if 0 <= idx < len(novels):
+                    selected = novels[idx]
+            except Exception:
+                selected = novels[0]
+
+    if not selected:
+        selected = novels[0]
+
+    novel_slug = selected["slug"]
+    json_path = selected["json_file"]
+    output_dir = selected["dir"]
+    novel_title = novel_slug.replace("-", " ").title()
+
+    print(f"\nReading {json_path.name}...")
+    with open(json_path, "r", encoding="utf-8") as file:
+        data = json.load(file)
+
+    if isinstance(data, dict):
+        chapters = list(data.values())
+    elif isinstance(data, list):
+        chapters = data
+    else:
+        chapters = []
+
+    chapters.sort(key=lambda ch: ch.get("chapter_number", 0))
+    print(f"Found {len(chapters)} chapters for {novel_title}")
+
+    cover_path = prepare_cover(output_dir)
+    is_shadow_slave = (novel_slug.lower() == "shadow-slave")
+
+    full_book = create_full_book(novel_title, chapters, cover_path, output_dir, is_shadow_slave)
+
+    if is_shadow_slave:
+        volume_files = []
+        for volume_number, volume_title, start, end in VOLUMES:
+            volume_chapters = [
+                ch for ch in chapters
+                if start <= ch.get("chapter_number", 0) <= end
+            ]
+            if not volume_chapters:
+                continue
+
+            vol_file = create_volume_book(volume_number, volume_title, volume_chapters, cover_path, output_dir)
+            volume_files.append((volume_number, volume_title, len(volume_chapters), vol_file))
+
+        print("\nVolume EPUBs created:")
+        for vnum, vtitle, vcount, vfile in volume_files:
+            print(f"  Volume {vnum} ({vtitle}): {vcount} chapters -> {vfile.name}")
+
+    print("\n========================================")
+    print("EPUB CONVERSION COMPLETE")
+    print("========================================")
+    print(f"Novel: {novel_title}")
+    print(f"Output directory: {output_dir}")
+    print(f"Generated EPUB: {full_book.name}")
+    print("========================================\n")

@@ -103,6 +103,22 @@ html, body {
   -webkit-app-region: no-drag;
 }
 
+.win-btn-text {
+  width: auto;
+  padding: 0 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  background-color: var(--accent-light);
+  color: var(--accent);
+  border: 1px solid var(--panel-border);
+}
+
+.win-btn-text:hover {
+  background-color: var(--accent);
+  color: #ffffff;
+}
+
 .win-btn:hover {
   background-color: var(--accent-light);
 }
@@ -239,6 +255,15 @@ input[type="range"] {
   cursor: pointer;
   -webkit-app-region: no-drag !important;
   transition: height 0.15s ease;
+}
+
+#progressTrack::before {
+  content: '';
+  position: absolute;
+  top: -5px;
+  bottom: -5px;
+  left: 0;
+  right: 0;
 }
 
 #progressTrack:hover {

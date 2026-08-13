@@ -16,6 +16,7 @@
     </div>
 
     <div class="window-controls">
+      <button id="taskbarBtn" class="win-btn win-btn-text" title="Toggle Taskbar Space (On: reserves height for taskbar / Off: full monitor height)">Taskbar: On</button>
       <button id="minimizeBtn" class="win-btn" title="Minimize">—</button>
       <button id="maximizeBtn" class="win-btn" title="Maximize/Restore">❐</button>
       <button id="closeBtn" class="win-btn win-close" title="Close">✕</button>
@@ -49,6 +50,10 @@
         <label class="checkbox-label" title="Toggle Dark Theme">
           <input id="themeToggle" type="checkbox" checked>
           <span>Dark</span>
+        </label>
+        <label class="checkbox-label" title="Keep Awake: Prevent OLED screen dimming & register activity">
+          <input id="awakeToggle" type="checkbox" checked>
+          <span>Awake</span>
         </label>
       </div>
     </div>

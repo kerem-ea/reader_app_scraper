@@ -1,4 +1,3 @@
-# Python
 __pycache__/
 *.py[cod]
 *$py.class
@@ -20,7 +19,6 @@ wheels/
 .installed.cfg
 *.egg
 
-# Virtual environments
 venv/
 .venv/
 env/
@@ -28,14 +26,11 @@ ENV/
 env.bak/
 venv.bak/
 
-# EPUB files
 *.epub
 
-# App-specific
-last_read.txt
-reading_app/last_read.txt
+!last_read.txt
+!reading_app/last_read.txt
 
-# Scraped data
 data/*
 !data/.gitkeep
 !data/shadow-slave/
@@ -45,5 +40,4 @@ data/**/*.png
 scraper/data/*
 !scraper/data/.gitkeep
 
-# Built executable
 reader.exe

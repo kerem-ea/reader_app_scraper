@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const softFont = $('#softFont'), themeToggle = $('#themeToggle')
   const markReadBtn = $('#markReadBtn'), closeBtn = $('#closeBtn')
   const minimizeBtn = $('#minimizeBtn'), maximizeBtn = $('#maximizeBtn')
+  const taskbarBtn = $('#taskbarBtn'), awakeToggle = $('#awakeToggle')
   const prevBtn = $('#prevBtn'), nextBtn = $('#nextBtn')
   const prevBtnBottom = $('#prevBtnBottom'), nextBtnBottom = $('#nextBtnBottom')
   const readerContainer = $('#readerContainer'), paperEl = $('.reader-paper')
@@ -28,6 +29,72 @@ document.addEventListener('DOMContentLoaded', () => {
   fontSize.oninput = lineHeight.oninput = readWidth.oninput = softFont.onchange = themeToggle.onchange = applySettings
   themeToggle.checked = true
   applySettings()
+
+  let hasTaskbar = localStorage.getItem('weaver_has_taskbar') !== 'false'
+
+  function updateTaskbarUI(state) {
+    hasTaskbar = !!state
+    localStorage.setItem('weaver_has_taskbar', hasTaskbar ? 'true' : 'false')
+    if (taskbarBtn) {
+      taskbarBtn.textContent = hasTaskbar ? 'Taskbar: On' : 'Taskbar: Off'
+      taskbarBtn.title = hasTaskbar
+        ? 'Taskbar: On (reserves height for taskbar). Click to switch to Full Monitor Height.'
+        : 'Taskbar: Off (fills full monitor height). Click to reserve Taskbar space.'
+    }
+  }
+  updateTaskbarUI(hasTaskbar)
+
+  if (taskbarBtn) {
+    taskbarBtn.onclick = () => {
+      hasTaskbar = !hasTaskbar
+      updateTaskbarUI(hasTaskbar)
+      if (window.pywebview?.api?.set_taskbar_mode) {
+        window.pywebview.api.set_taskbar_mode(hasTaskbar)
+      }
+    }
+  }
+
+  if (awakeToggle) {
+    const savedAwake = localStorage.getItem('weaver_keep_awake') !== 'false'
+    awakeToggle.checked = savedAwake
+    awakeToggle.onchange = () => {
+      localStorage.setItem('weaver_keep_awake', awakeToggle.checked ? 'true' : 'false')
+      if (window.pywebview?.api?.set_keep_awake) {
+        window.pywebview.api.set_keep_awake(awakeToggle.checked)
+      }
+    }
+  }
+
+  let lastActivityPing = 0
+  function pingUserActivity() {
+    if (awakeToggle && !awakeToggle.checked) return
+    const now = Date.now()
+    if (now - lastActivityPing > 5000) {
+      lastActivityPing = now
+      if (window.pywebview?.api?.ping_activity) {
+        window.pywebview.api.ping_activity()
+      }
+    }
+  }
+
+  ['mousemove', 'scroll', 'keydown', 'click', 'wheel', 'touchstart'].forEach(evt => {
+    window.addEventListener(evt, pingUserActivity, { passive: true })
+  })
+  if (readerContainer) {
+    readerContainer.addEventListener('scroll', pingUserActivity, { passive: true })
+  }
+
+  function syncPyWebviewApi() {
+    if (window.pywebview && window.pywebview.api) {
+      window.pywebview.api.set_taskbar_mode(hasTaskbar)
+      if (awakeToggle) {
+        window.pywebview.api.set_keep_awake(awakeToggle.checked)
+      }
+    } else {
+      setTimeout(syncPyWebviewApi, 100)
+    }
+  }
+  syncPyWebviewApi()
 
   window.isMaximized = true
   window.setWindowMaximizedState = (isMaximized) => {
@@ -60,7 +127,10 @@ document.addEventListener('DOMContentLoaded', () => {
   setupDragBlocker()
 
   window.addEventListener('mousedown', (e) => {
-    const isInteractive = e.target.closest('input, select, button, label, #progressTrack, #progressBar, .toolbar-bar, .toolbar-controls, .selectors, .window-controls, .no-drag')
+    const isProgress = e.target.closest('#progressTrack, #progressBar')
+    if (isProgress) return
+
+    const isInteractive = e.target.closest('input, select, button, label, .toolbar-bar, .toolbar-controls, .selectors, .window-controls, .no-drag')
     if (isInteractive) {
       e.stopPropagation()
     } else if (window.isMaximized) {
@@ -83,25 +153,31 @@ document.addEventListener('DOMContentLoaded', () => {
     const pct = Math.max(0, Math.min(1, clickX / width))
     const totalHeight = readerContainer.scrollHeight - readerContainer.clientHeight
     if (totalHeight > 0) {
-      readerContainer.scrollTop = pct * totalHeight
+      readerContainer.scrollTop = Math.round(pct * totalHeight)
     }
   }
 
   if (progressTrack) {
     progressTrack.addEventListener('mousedown', (e) => {
       e.stopPropagation()
+      e.preventDefault()
       isDraggingProgress = true
+      readerContainer.style.scrollBehavior = 'auto'
       seekProgress(e)
     })
 
     window.addEventListener('mousemove', (e) => {
       if (isDraggingProgress) {
+        e.preventDefault()
         seekProgress(e)
       }
     })
 
     window.addEventListener('mouseup', () => {
-      isDraggingProgress = false
+      if (isDraggingProgress) {
+        isDraggingProgress = false
+        readerContainer.style.scrollBehavior = ''
+      }
     })
   }
 
