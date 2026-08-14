@@ -1,13 +1,14 @@
-from .constants import BASE_DIR
+from .constants import get_base_dir
 
 
 # Scan the data dir and return every novel with a chapters JSON file.
 def find_scraped_novels():
-    if not BASE_DIR.exists():
+    base_dir = get_base_dir()
+    if not base_dir.exists():
         return []
 
     novels = []
-    for item in sorted(BASE_DIR.iterdir()):
+    for item in sorted(base_dir.iterdir()):
         if item.is_dir() and not item.name.startswith("."):
             raw_files = list(item.glob("*_chapters_raw.json"))
             clean_files = list(item.glob("*_chapters.json"))

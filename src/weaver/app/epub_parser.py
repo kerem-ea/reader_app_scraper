@@ -1,3 +1,4 @@
+import logging
 import os
 import re
 import sys
@@ -9,8 +10,26 @@ from selectolax.parser import HTMLParser
 
 from .paths import find_data_root, HERE
 
+logger = logging.getLogger(__name__)
 
-# Find every non-volume EPUB under the data/search roots, keyed by relative path.
+
+def _novel_key(full_path: str, current_root: str) -> str:
+    """Stable novel id: the novel folder under the data root, else the file stem.
+
+    Folder names survive EPUB rebuilds and renames, so progress keyed by them
+    does not get orphaned when a novel's EPUB is regenerated.
+    """
+    try:
+        rel = os.path.relpath(full_path, current_root).replace('\\', '/')
+        parts = [p for p in rel.split('/') if p]
+        if len(parts) >= 2:
+            return parts[0]
+    except Exception:
+        pass
+    return Path(full_path).stem
+
+
+# Find every non-volume EPUB under the data/search roots, keyed by novel slug.
 def find_all_epub_files():
     current_root = find_data_root()
     search_dirs = [
@@ -31,9 +50,9 @@ def find_all_epub_files():
                     if re.search(r'\b(volume|vol)\b', file.lower()):
                         continue
                     full_path = os.path.abspath(os.path.join(root, file))
-                    rel_key = os.path.relpath(full_path, current_root).replace('\\', '/')
-                    if rel_key not in found:
-                        found[rel_key] = full_path
+                    key = _novel_key(full_path, current_root)
+                    if key and key not in found:
+                        found[key] = full_path
 
     return found
 
@@ -111,8 +130,8 @@ def parse_epub_info(file_path):
                             if ncx_dir:
                                 src = f"{ncx_dir}/{src}"
                             toc_map[src] = text_elem.text.strip()
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.debug("Could not parse NCX for %s: %s", file_path, e)
 
             nav_item = next((item for item in manifest.values() if 'nav' in item['properties'] or item['href'].endswith('nav.xhtml')), None)
             if nav_item and not toc_map:
@@ -128,8 +147,8 @@ def parse_epub_info(file_path):
                             href_val = f"{nav_dir}/{href_val}"
                         if href_val and clean_text:
                             toc_map[href_val] = unescape(clean_text)
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.debug("Could not parse NAV for %s: %s", file_path, e)
 
             chapters = []
             chap_num = 1
@@ -154,8 +173,8 @@ def parse_epub_info(file_path):
                         m_title = re.search(r'<(?:h1|h2|title)[^>]*>(.*?)</(?:h1|h2|title)>', content, re.IGNORECASE | re.DOTALL)
                         if m_title:
                             chap_title = re.sub(r'<[^>]+>', '', m_title.group(1)).strip()
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        logger.debug("Could not extract fallback chapter title for %s: %s", href, e)
 
                 if not chap_title:
                     chap_title = f"Chapter {chap_num}"
@@ -173,7 +192,8 @@ def parse_epub_info(file_path):
 
             _EPUB_INFO_CACHE[abs_path] = (current_mtime, title, chapters)
             return title, chapters
-    except Exception:
+    except Exception as e:
+        logger.debug("Could not parse EPUB %s: %s", file_path, e)
         fallback_title = Path(file_path).stem
         return fallback_title, []
 
@@ -205,5 +225,7 @@ def extract_chapter_text(file_path, href):
                 return '\n\n'.join(lines)
 
             return ''
-    except Exception:
+
+    except Exception as e:
+        logger.debug("Could not extract chapter text from %s: %s", file_path, e)
         return ''

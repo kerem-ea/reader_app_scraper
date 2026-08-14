@@ -4,7 +4,7 @@ import time
 
 from .catalog import get_chapter_titles
 from .constants import MODE_SETTINGS, Settings
-from .fetch import failed_chapters, run_fast_mode
+from .fetch import run_fast_mode
 from .browser import run_browser_mode
 from . import paths
 from .progress import ProgressWriter, compile_json, load_done
@@ -109,7 +109,7 @@ async def run() -> None:
     print(f"Remaining: {len(queue)}")
 
     writer = ProgressWriter(paths.TEMP_JSONL)
-    stats = {"done": 0, "failed": 0, "t0": time.time()}
+    stats = {"done": 0, "failed": 0, "t0": time.time(), "failed_chapters": set()}
 
     try:
         if selected_mode in ("1", "3"):
@@ -128,6 +128,7 @@ async def run() -> None:
             )
             writer.flush()
 
+            failed_chapters = stats["failed_chapters"]
             if failed_chapters:
                 retry_queue = [
                     (chapter_number, paths.CHAPTER_URL_TMPL.format(chapter_number))
@@ -163,7 +164,7 @@ async def run() -> None:
                 site_config=site_config,
             )
             writer.flush()
-            print(f"Mode 2 completed. Failed: {len(failed_chapters)}")
+            print(f"Mode 2 completed. Failed: {len(stats['failed_chapters'])}")
     finally:
         writer.close()
         compile_json(paths.TEMP_JSONL, paths.OUT_JSON)
@@ -173,7 +174,7 @@ async def run() -> None:
     print()
     print("DONE")
     print(f"Successful: {len(load_done(paths.TEMP_JSONL))}")
-    print(f"Still failed: {len(failed_chapters)}")
+    print(f"Still failed: {len(stats['failed_chapters'])}")
     print(f"Elapsed: {elapsed:.1f}s")
     print(f"Output: {paths.OUT_JSON}")
     print(f"Progress: {paths.TEMP_JSONL}")

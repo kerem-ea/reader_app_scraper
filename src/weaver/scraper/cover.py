@@ -1,11 +1,16 @@
 import io
 from pathlib import Path
 from urllib.parse import urljoin
-import requests
 from selectolax.parser import HTMLParser
 
-from .constants import DEFAULT_HEADERS
+from .constants import DEFAULT_HEADERS, IMPERSONATE
 from .site_config import SiteConfig
+
+
+def _http_get(url: str, headers: dict, timeout: int):
+    from curl_cffi.requests import get as http_get
+
+    return http_get(url, headers=headers, timeout=timeout, impersonate=IMPERSONATE)
 
 
 # GET the novel landing page HTML (used to locate the cover image).
@@ -14,7 +19,7 @@ def fetch_novel_landing_page(site_config: SiteConfig, novel_slug: str, novel_url
     try:
         headers = dict(DEFAULT_HEADERS)
         headers["Referer"] = novel_url
-        response = requests.get(landing_url, headers=headers, timeout=15)
+        response = _http_get(landing_url, headers=headers, timeout=15)
         response.raise_for_status()
         return response.text
     except Exception as e:
@@ -64,7 +69,7 @@ def extract_cover_url_from_landing_page(html: str, site_config: SiteConfig, nove
 def download_cover_image(cover_url: str, output_path: Path) -> bool:
     try:
         headers = dict(DEFAULT_HEADERS)
-        response = requests.get(cover_url, headers=headers, timeout=15)
+        response = _http_get(cover_url, headers=headers, timeout=15)
         response.raise_for_status()
         if not response.content or len(response.content) < 100:
             return False

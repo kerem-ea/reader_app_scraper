@@ -1,9 +1,10 @@
 import asyncio
 import random
 
-from .constants import MIN_WORD_COUNT, REQUEST_TIMEOUT
+from .constants import REQUEST_TIMEOUT
 from .fetch import record_failure, record_success
 from .parsing import extract_content, looks_like_challenge
+from .site_config import FREEWEBNOVEL
 from . import paths
 from .session import camoufox_ctx, wait_for_challenge_clear
 
@@ -11,7 +12,8 @@ from .session import camoufox_ctx, wait_for_challenge_clear
 # Extract content from browser HTML; record it if it passes the min word count.
 async def _handle_content_success(html, chapter_number, url, writer, stats, total, chapter_titles, settings, site_config):
     text, wc = extract_content(html, site_config=site_config)
-    if wc >= MIN_WORD_COUNT:
+    min_words = (site_config or FREEWEBNOVEL).min_word_count
+    if wc >= min_words:
         await record_success(
             chapter_number,
             url,
@@ -136,7 +138,7 @@ async def fetch_one_browser(
                 continue
 
     print(f"[-] FAILED: {chap_id}")
-    record_failure(chapter_number)
+    record_failure(chapter_number, stats)
     stats["failed"] += 1
     return page_ok
 

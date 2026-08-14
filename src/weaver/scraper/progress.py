@@ -1,10 +1,13 @@
 import asyncio
 import json
+import logging
 import re
 from dataclasses import dataclass
 from pathlib import Path
 import sys
 import time
+
+logger = logging.getLogger(__name__)
 
 
 # Print an inline progress line with rate + ETA for the current chapter.
@@ -72,7 +75,7 @@ def iter_jsonl(path: Path):
             try:
                 items.append(json.loads(line))
             except json.JSONDecodeError:
-                pass
+                logger.warning("Skipping malformed JSONL line in %s", path)
 
     def sort_key(item: dict) -> tuple[float, str]:
         item_id = item.get("id") if isinstance(item, dict) else None

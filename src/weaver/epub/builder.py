@@ -1,10 +1,16 @@
 import re
+import uuid
 from pathlib import Path
 from ebooklib import epub
 
 from .constants import sanitize_filename
 from .cover import add_cover, create_style
 from .chapters import create_chapter, create_volume_page, _format_chapter_title
+
+
+def _epub_identifier(slug: str) -> str:
+    """Stable, spec-compliant URN identifier derived from the novel slug."""
+    return f"urn:uuid:{uuid.uuid5(uuid.NAMESPACE_URL, f'https://weaver.local/{slug}')}"
 
 
 # Write TOC, spine and render the EPUB to disk.
@@ -31,7 +37,7 @@ def create_full_book(novel_title: str, chapters: list, cover_path: Path | None, 
     book = epub.EpubBook()
     slug = re.sub(r"[^a-zA-Z0-9_\-]+", "-", novel_title.lower()).strip("-") or "novel"
 
-    book.set_identifier(slug)
+    book.set_identifier(_epub_identifier(slug))
     book.set_title(novel_title)
     book.set_language("en")
     book.add_author(author)
@@ -156,7 +162,7 @@ def create_volume_book(
     book = epub.EpubBook()
 
     slug = re.sub(r"[^a-zA-Z0-9_\-]+", "-", novel_title.lower()).strip("-") or "novel"
-    identifier = f"{slug}-volume-{volume_number}"
+    identifier = _epub_identifier(f"{slug}-volume-{volume_number}")
     book.set_identifier(identifier)
     book.set_title(f"{novel_title} - {volume_name}")
     book.set_language("en")

@@ -25,7 +25,7 @@ def api_sites():
     sites = []
     for key, path in sorted(epubs.items()):
         title, _ = parse_epub_info(path)
-        sites.append({'id': key, 'name': title or Path(path).stem, 'path': key})
+        sites.append({'id': key, 'name': title or Path(path).stem})
     return jsonify(sites)
 
 

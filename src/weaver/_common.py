@@ -18,14 +18,26 @@ def get_data_root() -> Path:
     """Resolve the runtime data directory.
 
     Prefers the repository data/ directory when running from a source
-    checkout; otherwise falls back to the current working directory's data/.
+    checkout; otherwise falls back to a stable per-user data directory
+    that is independent of the current working directory. This keeps the
+    scraper, EPUB builder and reader app all pointing at the same data,
+    no matter where each command is launched from.
     """
     repo = repo_data_root()
     if repo is not None:
         return repo
-    cwd_data = Path.cwd() / "data"
-    cwd_data.mkdir(parents=True, exist_ok=True)
-    return cwd_data
+
+    if getattr(sys, "frozen", False):
+        base = Path(sys.executable).parent / "data"
+    elif sys.platform == "win32":
+        appdata = Path(os.environ.get("APPDATA", Path.home() / "AppData" / "Roaming"))
+        base = appdata / "weaver-reader" / "data"
+    else:
+        xdg = Path(os.environ.get("XDG_DATA_HOME", Path.home() / ".local" / "share"))
+        base = xdg / "weaver-reader" / "data"
+
+    base.mkdir(parents=True, exist_ok=True)
+    return base
 
 
 def get_progress_file() -> Path:

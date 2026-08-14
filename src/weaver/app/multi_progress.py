@@ -1,7 +1,11 @@
 import json
+import logging
 import os
 
-from .paths import PROGRESS_FILE, HERE, ensure_progress_dir
+from .._common import get_progress_file
+from .paths import HERE, ensure_progress_dir
+
+logger = logging.getLogger(__name__)
 
 
 # Read the old single-novel last_read.txt format if it still exists.
@@ -25,23 +29,24 @@ def _migrate_old_txt() -> dict:
                         site: {"chapter": chapter or 1}
                     }
                 }
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("Could not migrate last_read.txt: %s", e)
     return {"last_site": None, "novels": {}}
 
 
 # Load the full multi-novel progress dict.
 def get_all_progress() -> dict:
-    if os.path.isfile(PROGRESS_FILE):
+    progress_file = get_progress_file()
+    if progress_file.is_file():
         try:
-            with open(PROGRESS_FILE, 'r', encoding='utf-8') as f:
+            with open(progress_file, 'r', encoding='utf-8') as f:
                 data = json.load(f)
             if isinstance(data, dict):
                 if "novels" not in data:
                     data = {"last_site": data.get("last_site") or data.get("site"), "novels": {}}
                 return data
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("Could not read progress file: %s", e)
     return _migrate_old_txt()
 
 
@@ -49,10 +54,10 @@ def get_all_progress() -> dict:
 def save_all_progress(data: dict) -> None:
     ensure_progress_dir()
     try:
-        with open(PROGRESS_FILE, 'w', encoding='utf-8') as f:
+        with open(get_progress_file(), 'w', encoding='utf-8') as f:
             json.dump(data, f, indent=2)
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("Could not write progress file: %s", e)
 
 
 # Last chapter read for one novel (or None).

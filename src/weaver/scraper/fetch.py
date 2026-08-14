@@ -4,7 +4,6 @@ import time
 from .constants import (
     DEFAULT_HEADERS,
     FAIL_STREAK_LIMIT,
-    MIN_WORD_COUNT,
     RATE_LIMIT_STREAK_LIMIT,
     REQUEST_TIMEOUT,
     REBOOTSTRAP_EVERY_N,
@@ -17,10 +16,9 @@ from .parsing import (
     parse_retry_after,
 )
 from .progress import print_progress_line
-from .paths import NOVEL_URL
+from .site_config import FREEWEBNOVEL
+from . import paths
 from .session import bootstrap_with_retry, make_impersonate_session
-
-failed_chapters: set[int] = set()
 
 
 # Log a successful chapter to the writer and update progress stats.
@@ -54,6 +52,7 @@ async def record_success(
 
     stats["done"] += 1
 
+    failed_chapters = stats.setdefault("failed_chapters", set())
     if chapter_number in failed_chapters:
         failed_chapters.discard(chapter_number)
         if stats["failed"] > 0:
@@ -69,9 +68,8 @@ async def record_success(
 
 
 # Track a failed chapter for the retry pass.
-def record_failure(chapter_number: int) -> None:
-    if chapter_number not in failed_chapters:
-        failed_chapters.add(chapter_number)
+def record_failure(chapter_number: int, stats: dict) -> None:
+    stats.setdefault("failed_chapters", set()).add(chapter_number)
 
 
 # Rate-limiter that spaces requests and backs off on failures/challenges.
@@ -164,7 +162,7 @@ async def fetch_one(
 
             try:
                 headers = dict(DEFAULT_HEADERS)
-                headers["Referer"] = NOVEL_URL
+                headers["Referer"] = paths.NOVEL_URL
                 headers["User-Agent"] = session_holder["user_agent"]
 
                 response = await session.get(
@@ -185,7 +183,8 @@ async def fetch_one(
 
             if response.status_code == 200 and not challenge:
                 text, wc = extract_content(response.text, site_config=site_config)
-                if wc >= MIN_WORD_COUNT:
+                min_words = (site_config or FREEWEBNOVEL).min_word_count
+                if wc >= min_words:
                     await record_success(
                         chapter_number,
                         url,
@@ -211,7 +210,7 @@ async def fetch_one(
             await gate.generic_failure(retry_after)
 
         print(f"[-] FAILED: {chap_id}")
-        record_failure(chapter_number)
+        record_failure(chapter_number, stats)
         stats["failed"] += 1
 
 

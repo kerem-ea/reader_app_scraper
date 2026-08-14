@@ -4,7 +4,7 @@ from PIL import Image
 from ebooklib import epub
 
 from .._common import repo_data_root
-from .constants import COVER_FILE, CSS, BASE_DIR
+from .constants import COVER_FILE, CSS
 
 
 # Convert any image file to PNG (fall back to the original on failure).

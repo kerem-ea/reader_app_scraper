@@ -31,6 +31,7 @@ class SiteConfig:
     chapter_link_href_pattern: str = "/chapter-"
     chapter_link_regex: str = r"/chapter-(\d+)"
     catalog_page_size: int = 40
+    min_word_count: int = 50
     author_css_selectors: tuple[str, ...] = (
         "span.author a",
         "div.property a[href*='/author/']",

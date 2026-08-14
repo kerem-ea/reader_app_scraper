@@ -5,14 +5,13 @@ from selectolax.parser import HTMLParser
 
 from .constants import (
     GENERIC_TITLE_BLACKLIST,
-    MIN_WORD_COUNT,
     TITLE_RE,
 )
 from .site_config import SiteConfig, FREEWEBNOVEL
 
 
 # Pull <p> text out of a set of HTML nodes; returns empty if below min word count.
-def _paragraphs_to_text(nodes) -> tuple[str, int]:
+def _paragraphs_to_text(nodes, min_words: int) -> tuple[str, int]:
     parts = []
     for node in nodes:
         t = node.text(strip=True)
@@ -20,7 +19,7 @@ def _paragraphs_to_text(nodes) -> tuple[str, int]:
             parts.append(t)
     text = "\n\n".join(parts)
     wc = len(text.split())
-    if wc >= MIN_WORD_COUNT:
+    if wc >= min_words:
         return text, wc
     return "", 0
 
@@ -38,13 +37,14 @@ def _clean_chapter_title(text: str) -> str:
 # Extract chapter body text from raw HTML using the site's content selectors.
 def extract_content(html: str, site_config: SiteConfig | None = None) -> tuple[str, int]:
     config = site_config or FREEWEBNOVEL
+    min_words = config.min_word_count
     chapter_regex = re.compile(config.chapter_regex, re.DOTALL | re.IGNORECASE)
     match = chapter_regex.search(html)
 
     if match:
         tree = HTMLParser(match.group(1))
-        text, wc = _paragraphs_to_text(tree.css("p"))
-        if wc >= MIN_WORD_COUNT:
+        text, wc = _paragraphs_to_text(tree.css("p"), min_words)
+        if wc >= min_words:
             return text, wc
 
     tree = HTMLParser(html)
@@ -56,8 +56,8 @@ def extract_content(html: str, site_config: SiteConfig | None = None) -> tuple[s
             break
 
     for node in candidates:
-        text, wc = _paragraphs_to_text(node.css("p"))
-        if wc >= MIN_WORD_COUNT:
+        text, wc = _paragraphs_to_text(node.css("p"), min_words)
+        if wc >= min_words:
             return text, wc
 
     return "", 0

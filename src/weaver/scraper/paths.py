@@ -1,34 +1,66 @@
+from dataclasses import dataclass
 from pathlib import Path
 
 from .._common import get_data_root
-from .site_config import FREEWEBNOVEL, SiteConfig
-
-NOVEL_NAME = ""
-START_CHAPTER = 1
-END_CHAPTER = 1
-NOVEL_DIR = Path()
-OUT_JSON = Path()
-TEMP_JSONL = Path()
-NOVEL_URL = ""
-CHAPTER_URL_TMPL = ""
-SITE_CONFIG: SiteConfig = FREEWEBNOVEL
-
-BASE_DIR = get_data_root()
+from .site_config import SiteConfig
 
 
-# Set up the output paths for the current scrape (data/<novel>/...).
-def initialize_paths(site_config: SiteConfig, novel_name: str, start: int, end: int):
-    global SITE_CONFIG, NOVEL_NAME, START_CHAPTER, END_CHAPTER
-    global NOVEL_DIR, OUT_JSON, TEMP_JSONL, NOVEL_URL
-    global CHAPTER_URL_TMPL
+@dataclass(frozen=True)
+class ScrapePaths:
+    """All path/URL state for a single scrape run, resolved lazily at run time."""
 
-    SITE_CONFIG = site_config
-    NOVEL_NAME = novel_name
-    START_CHAPTER = start
-    END_CHAPTER = end
-    NOVEL_DIR = BASE_DIR / NOVEL_NAME
-    NOVEL_DIR.mkdir(parents=True, exist_ok=True)
-    OUT_JSON = NOVEL_DIR / f"{NOVEL_NAME}_chapters_raw.json"
-    TEMP_JSONL = NOVEL_DIR / f"{NOVEL_NAME}_progress.jsonl"
-    NOVEL_URL = SITE_CONFIG.novel_url(NOVEL_NAME)
-    CHAPTER_URL_TMPL = SITE_CONFIG.chapter_url_template.format(novel=NOVEL_NAME, chapter="{}")
+    SITE_CONFIG: SiteConfig
+    NOVEL_NAME: str
+    START_CHAPTER: int
+    END_CHAPTER: int
+    BASE_DIR: Path
+    NOVEL_DIR: Path
+    OUT_JSON: Path
+    TEMP_JSONL: Path
+    NOVEL_URL: str
+    CHAPTER_URL_TMPL: str
+
+    @classmethod
+    def initialize(cls, site_config, novel_name: str, start: int, end: int) -> "ScrapePaths":
+        base_dir = get_data_root()
+        novel_dir = base_dir / novel_name
+        novel_dir.mkdir(parents=True, exist_ok=True)
+        return cls(
+            SITE_CONFIG=site_config,
+            NOVEL_NAME=novel_name,
+            START_CHAPTER=start,
+            END_CHAPTER=end,
+            BASE_DIR=base_dir,
+            NOVEL_DIR=novel_dir,
+            OUT_JSON=novel_dir / f"{novel_name}_chapters_raw.json",
+            TEMP_JSONL=novel_dir / f"{novel_name}_progress.jsonl",
+            NOVEL_URL=site_config.novel_url(novel_name),
+            CHAPTER_URL_TMPL=site_config.chapter_url(novel_name, "{}"),
+        )
+
+    def chapter_url(self, chapter_number: int) -> str:
+        return self.CHAPTER_URL_TMPL.format(chapter_number)
+
+
+_CURRENT: ScrapePaths | None = None
+
+
+def initialize_paths(site_config, novel_name: str, start: int, end: int) -> ScrapePaths:
+    """Configure the current scrape run; resolves the data root lazily."""
+    global _CURRENT
+    _CURRENT = ScrapePaths.initialize(site_config, novel_name, start, end)
+    return _CURRENT
+
+
+def get_current() -> ScrapePaths:
+    if _CURRENT is None:
+        raise RuntimeError("paths.initialize_paths() must be called before scraping")
+    return _CURRENT
+
+
+# Legacy attribute access (paths.OUT_JSON etc.) resolves against the current run.
+def __getattr__(name: str):
+    current = get_current()
+    if hasattr(current, name):
+        return getattr(current, name)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

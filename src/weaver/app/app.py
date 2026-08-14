@@ -8,6 +8,17 @@ from .window_manager import get_free_port
 from .api import Api
 
 # Start the Flask server + pywebview desktop window.
+def _wait_for_server(port: int, timeout: float = 10.0) -> None:
+    """Block until the Flask server on 127.0.0.1:port accepts connections."""
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        try:
+            with socket.create_connection(("127.0.0.1", port), timeout=0.2):
+                return
+        except OSError:
+            time.sleep(0.05)
+
+
 def main():
     port = 5000
     try:
@@ -23,7 +34,7 @@ def main():
     flask_thread = threading.Thread(target=start_flask, daemon=True)
     flask_thread.start()
 
-    time.sleep(1)
+    _wait_for_server(port)
 
     keep_awake_mgr.start()
 

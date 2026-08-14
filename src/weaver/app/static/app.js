@@ -25,10 +25,27 @@ document.addEventListener('DOMContentLoaded', () => {
     paperEl.style.maxWidth = readWidth.value + 'px'
     document.body.classList.toggle('soft-font', softFont.checked)
     document.body.classList.toggle('dark', themeToggle.checked)
+    saveSettings()
+  }
+
+  function saveSettings() {
+    localStorage.setItem('weaver_font_size', fontSize.value)
+    localStorage.setItem('weaver_line_height', lineHeight.value)
+    localStorage.setItem('weaver_read_width', readWidth.value)
+    localStorage.setItem('weaver_soft_font', softFont.checked ? '1' : '0')
+    localStorage.setItem('weaver_theme', themeToggle.checked ? '1' : '0')
+  }
+
+  function loadSettings() {
+    if (localStorage.getItem('weaver_font_size') !== null) fontSize.value = localStorage.getItem('weaver_font_size')
+    if (localStorage.getItem('weaver_line_height') !== null) lineHeight.value = localStorage.getItem('weaver_line_height')
+    if (localStorage.getItem('weaver_read_width') !== null) readWidth.value = localStorage.getItem('weaver_read_width')
+    softFont.checked = localStorage.getItem('weaver_soft_font') !== '0'
+    themeToggle.checked = localStorage.getItem('weaver_theme') !== '0'
   }
 
   fontSize.oninput = lineHeight.oninput = readWidth.oninput = softFont.onchange = themeToggle.onchange = applySettings
-  themeToggle.checked = true
+  loadSettings()
   applySettings()
 
   let hasTaskbar = localStorage.getItem('weaver_has_taskbar') !== 'false'
@@ -213,7 +230,7 @@ document.addEventListener('DOMContentLoaded', () => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ site, chapter: num })
-    }).catch(() => {})
+    }).catch(err => console.error('Failed to save progress', err))
   }
 
   async function fetchSites() {

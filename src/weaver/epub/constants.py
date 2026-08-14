@@ -1,11 +1,18 @@
 import json
+import logging
 import re
 from pathlib import Path
 
 from .._common import get_data_root
 
-BASE_DIR = get_data_root()
+logger = logging.getLogger(__name__)
+
 COVER_FILE = Path(__file__).resolve().parent.parent / "app" / "weaver.ico"
+
+
+def get_base_dir() -> Path:
+    """Resolve the data root lazily (avoids import-time side effects)."""
+    return get_data_root()
 
 VOLUMES = [
     (1, "Child of Shadows", 1, 95),
@@ -22,6 +29,9 @@ VOLUMES = [
     (12, "Untitled", 3001, 999999),
 ]
 
+# Curated volume defaults for a few known novels. This is a fallback only:
+# a novel's own metadata.json `volumes` key takes priority (see volumes.py),
+# and any novel without explicit volumes gets auto-generated splits.
 DEFAULT_KNOWN_METADATA = {
     "shadow-slave": {
         "author": "Guiltythree",
@@ -77,8 +87,8 @@ def get_novel_metadata(output_dir: Path, novel_slug: str) -> dict:
                 "site": data.get("site", ""),
                 "url": data.get("url", ""),
             }
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("Could not read %s: %s", meta_file, e)
 
     slug_key = novel_slug.lower()
     if slug_key in DEFAULT_KNOWN_METADATA:

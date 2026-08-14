@@ -1,20 +1,19 @@
 import asyncio
 
-from curl_cffi.requests import AsyncSession
-from camoufox.async_api import AsyncCamoufox
-
 from .constants import BOOTSTRAP_HEADLESS, IMPERSONATE_CANDIDATES
 from .parsing import looks_like_challenge
 from . import paths
 
 
 # Build a Camoufox browser context (headless flag controls visibility).
-def camoufox_ctx(headless: bool) -> AsyncCamoufox:
+def camoufox_ctx(headless: bool):
+    from camoufox.async_api import AsyncCamoufox
+
     return AsyncCamoufox(
         headless=headless,
         persistent_context=False,
         humanize=True,
-        geoip=True,
+        geoip=False,
         i_know_what_im_doing=True,
     )
 
@@ -48,7 +47,7 @@ async def wait_for_challenge_clear(
             try:
                 await page.reload(wait_until="domcontentloaded", timeout=60000)
             except Exception:
-                pass
+                pass  # reload is best-effort; polling below continues regardless
 
     if extra_wait_on_timeout:
         await page.wait_for_timeout(extra_wait_on_timeout)
@@ -104,7 +103,9 @@ async def bootstrap_with_retry(
 
 
 # Create a curl-cffi session trying each impersonate profile in turn.
-def make_impersonate_session() -> tuple[AsyncSession, str]:
+def make_impersonate_session() -> tuple[object, str]:
+    from curl_cffi.requests import AsyncSession
+
     last_err = None
 
     for profile in IMPERSONATE_CANDIDATES:

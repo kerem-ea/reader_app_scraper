@@ -95,7 +95,27 @@ def get_screen_bounds(win, include_taskbar=False):
     return 0, 0, 1280, 850
 
 
-# Move/resize the window (also via Win32 API when possible).
+# Extract the native Win32 HWND from a pywebview window without relying on
+# pywebview's internal attribute layout (version-agnostic getattr chain).
+def _native_hwnd(win):
+    if sys.platform != 'win32':
+        return None
+    try:
+        native = getattr(win, 'native', None)
+        if native is None:
+            return None
+        handle = getattr(native, 'Handle', None)
+        if handle is None:
+            handle = native
+        raw = int(handle)
+        if raw:
+            return wintypes.HWND(raw)
+    except Exception:
+        pass
+    return None
+
+
+# Move/resize the window via the public API, then confirm with the Win32 API.
 def apply_window_bounds(win, x, y, w, h):
     if not win:
         return
@@ -107,17 +127,15 @@ def apply_window_bounds(win, x, y, w, h):
 
     if sys.platform == 'win32':
         try:
-            hwnd = None
-            if hasattr(win, 'native') and win.native:
-                try:
-                    hwnd = win.native.Handle.ToInt64()
-                except Exception:
-                    pass
-            if not hwnd:
-                hwnd = ctypes.windll.user32.FindWindowW(None, "Weaver Reader")
+            hwnd = _native_hwnd(win)
             if hwnd:
-                ctypes.windll.user32.SetWindowPos(hwnd, 0, int(x), int(y), int(w), int(h), 0x0040 | 0x0004 | 0x0010)
-                ctypes.windll.user32.MoveWindow(hwnd, int(x), int(y), int(w), int(h), True)
+                user32 = ctypes.windll.user32
+                user32.SetWindowPos.argtypes = [
+                    wintypes.HWND, wintypes.HWND,
+                    ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int,
+                    ctypes.c_uint,
+                ]
+                user32.SetWindowPos(hwnd, 0, int(x), int(y), int(w), int(h), 0x0040 | 0x0004 | 0x0010)
         except Exception:
             pass
 

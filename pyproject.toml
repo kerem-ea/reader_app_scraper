@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "weaver-reader"
-version = "0.1.0"
+version = "0.2.0"
 authors = [
   {name = "kerem-ea"},
 ]
@@ -20,10 +20,15 @@ dependencies = [
     "Flask>=2.0",
     "selectolax",
     "curl-cffi",
-    "camoufox[geoip]",
+    "camoufox",
     "pywebview",
     "ebooklib",
     "pillow",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
 ]
 
 [project.scripts]
@@ -41,3 +46,6 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 "weaver.app" = ["static/*", "templates/*", "*.ico"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
