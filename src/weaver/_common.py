@@ -1,6 +1,7 @@
-"""Shared path resolution helpers for the Weaver package."""
+"""Shared helpers for the Weaver package."""
 
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -38,6 +39,33 @@ def get_data_root() -> Path:
 
     base.mkdir(parents=True, exist_ok=True)
     return base
+
+
+def get_version() -> str:
+    """Return the installed weaver-reader version.
+
+    Uses importlib.metadata when the package is installed; otherwise falls
+    back to parsing pyproject.toml in a source checkout.
+    """
+    try:
+        from importlib.metadata import version as _version
+        return _version("weaver-reader")
+    except Exception:
+        pass
+
+    package_dir = Path(__file__).resolve().parent
+    for candidate in (package_dir, *package_dir.parents):
+        pyproject = candidate / "pyproject.toml"
+        if pyproject.is_file():
+            try:
+                text = pyproject.read_text(encoding="utf-8")
+                match = re.search(r'^version\s*=\s*["\']([^"\']+)["\']', text, re.MULTILINE)
+                if match:
+                    return match.group(1)
+            except OSError:
+                pass
+            break
+    return "unknown"
 
 
 def get_progress_file() -> Path:

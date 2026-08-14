@@ -10,10 +10,14 @@ from . import paths
 from .progress import ProgressWriter, compile_json, load_done
 from .site_config import SiteRegistry, SiteConfig
 from .cover import download_novel_cover
+from .._common import get_version
 
-USAGE = """Usage:
-  weaver-scraper                          Interactive prompts
-  weaver-scraper <slug-or-url> <start> <end> <mode>
+PROG = "weaver"
+
+USAGE = f"""Usage:
+  {PROG}                                     Interactive prompts
+  {PROG} --version                          Print the version and exit
+  {PROG} <slug-or-url> <start> <end> <mode>
 
 Modes:
   1) MODE 1 (Fast HTTP) then MODE 2 for failures
@@ -21,8 +25,19 @@ Modes:
   3) MODE 3 (Slow HTTP) then MODE 2 for failures
 
 Example:
-  weaver-scraper shadow-slave 1 10 1
+  {PROG} shadow-slave 1 10 1
 """
+
+
+def _print_usage(stream=sys.stderr) -> None:
+    print(USAGE, file=stream)
+
+
+def _usage_hint() -> str:
+    return (
+        f"usage: {PROG} [slug-or-url start-chapter end-chapter mode]\n"
+        f"Try `{PROG} --help' for more information."
+    )
 
 
 # Gather novel + chapter range + mode from CLI args, or prompt interactively.
@@ -187,11 +202,32 @@ async def run() -> None:
     print(f"Progress: {paths.TEMP_JSONL}")
 
 
-# CLI entry point: print usage on -h, otherwise run the scrape loop.
+# Parse CLI args like the Python interpreter: handle -h/--version, reject
+# unknown options and malformed positional arguments with a usage error.
 def main() -> None:
-    if len(sys.argv) > 1 and sys.argv[1] in ("-h", "--help"):
-        print(USAGE)
-        return
+    args = sys.argv[1:]
+
+    for arg in args:
+        if arg in ("-h", "--help"):
+            _print_usage(stream=sys.stdout)
+            return
+        if arg in ("-V", "--version"):
+            print(f"{PROG}-reader {get_version()}")
+            sys.exit(0)
+        if arg.startswith("-"):
+            print(f"unknown option {arg}", file=sys.stderr)
+            print(_usage_hint(), file=sys.stderr)
+            sys.exit(2)
+
+    if args and len(args) != 4:
+        if len(args) < 4:
+            detail = f"missing argument(s): expected <slug-or-url> <start-chapter> <end-chapter> <mode>"
+        else:
+            detail = f"too many arguments (expected 4, got {len(args)})"
+        print(f"{PROG}: {detail}", file=sys.stderr)
+        print(_usage_hint(), file=sys.stderr)
+        sys.exit(2)
+
     try:
         asyncio.run(run())
     except KeyboardInterrupt:

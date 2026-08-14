@@ -43,6 +43,13 @@ weaver-scraper <slug-or-url> <start-chapter> <end-chapter> <mode>
 weaver-scraper shadow-slave 1 10 1
 ```
 
+Other options:
+
+```powershell
+weaver-scraper --version   # print the version and exit
+weaver-scraper --help      # print usage
+```
+
 Modes:
 - `1` — fast HTTP, then browser retry for failures
 - `2` — browser-only
