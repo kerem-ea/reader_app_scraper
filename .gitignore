@@ -28,11 +28,13 @@ venv.bak/
 
 *.epub
 
-# Scraped novel data (only the Shadow Slave sample is tracked)
+# Scraped novel data (only the Shadow Slave sample is tracked;
+# the raw chapters JSON is regenerable from the progress JSONL)
 data/*
 !data/.gitkeep
 !data/shadow-slave/
-!data/shadow-slave/*.json
+data/shadow-slave/shadow-slave_chapters_raw.json
+!data/shadow-slave/metadata.json
 !data/shadow-slave/*.jsonl
 !data/shadow-slave/cover.png
 
