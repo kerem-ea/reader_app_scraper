@@ -1,8 +1,0 @@
-Flask>=2.0
-selectolax
-curl-cffi
-camoufox[geoip]
-pyinstaller
-pywebview
-ebooklib
-pillow

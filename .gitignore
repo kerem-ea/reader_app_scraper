@@ -28,17 +28,15 @@ venv.bak/
 
 *.epub
 
-!last_read.json
-!reading_app/last_read.json
-
+# Scraped novel data (only the Shadow Slave sample is tracked)
 data/*
 !data/.gitkeep
 !data/shadow-slave/
 !data/shadow-slave/*.json
 !data/shadow-slave/*.jsonl
 !data/shadow-slave/cover.png
-scraper/data/*
-!scraper/data/.gitkeep
+
+!assets/cover.png
 
 reader.exe
 

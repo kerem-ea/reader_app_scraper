@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "weaver-reader"
+version = "0.1.0"
+authors = [
+  {name = "kerem-ea"},
+]
+description = "A complete system for scraping novel chapters from FreeWebNovel, converting scraped data into standardized EPUB books, and reading them locally in a dedicated desktop application."
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "Flask>=2.0",
+    "selectolax",
+    "curl-cffi",
+    "camoufox[geoip]",
+    "pywebview",
+    "ebooklib",
+    "pillow",
+]
+
+[project.scripts]
+weaver = "weaver.scraper:main"
+weaver-scraper = "weaver.scraper:main"
+weaver-epub = "weaver.epub:main"
+weaver-app = "weaver.app:main"
+
+[project.urls]
+Homepage = "https://github.com/kerem-ea/weaver-reader"
+Repository = "https://github.com/kerem-ea/weaver-reader"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"weaver.app" = ["static/*", "templates/*", "*.ico"]

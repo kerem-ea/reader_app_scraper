@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Weaver Reader</title>
+  <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+  <link rel="icon" type="image/png" href="/static/weaver.png">
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body class="dark soft-font">
+  <div class="window-bar pywebview-drag-region">
+    <div class="brand">
+      <img src="/static/weaver.png" alt="Logo" class="app-logo">
+      <span class="app-title">WEAVER READER</span>
+    </div>
+
+    <div class="window-controls">
+      <button id="taskbarBtn" class="win-btn win-btn-text" title="Toggle Taskbar Space (On: reserves height for taskbar / Off: full monitor height)">Taskbar: On</button>
+      <button id="minimizeBtn" class="win-btn" title="Minimize">—</button>
+      <button id="maximizeBtn" class="win-btn" title="Maximize/Restore">❐</button>
+      <button id="closeBtn" class="win-btn win-close" title="Close">✕</button>
+    </div>
+  </div>
+
+  <div class="toolbar-bar">
+    <div class="selectors">
+      <select id="siteSelect" class="styled-select" title="Select Novel"></select>
+      <select id="tocSelect" class="styled-select" title="Select Chapter"></select>
+    </div>
+
+    <div class="toolbar-controls">
+      <div class="control-group">
+        <label for="fontSize">Size</label>
+        <input id="fontSize" type="range" min="14" max="42" step="1" value="20" title="Font Size">
+      </div>
+      <div class="control-group">
+        <label for="lineHeight">Height</label>
+        <input id="lineHeight" type="range" min="1.2" max="3.0" step="0.1" value="1.8" title="Line Height">
+      </div>
+      <div class="control-group">
+        <label for="readWidth">Width</label>
+        <input id="readWidth" type="range" min="400" max="1400" step="20" value="840" title="Reading Width">
+      </div>
+      <div class="control-group toggle-group">
+        <label class="checkbox-label" title="Toggle Serif / Soft Font">
+          <input id="softFont" type="checkbox" checked>
+          <span>Serif</span>
+        </label>
+        <label class="checkbox-label" title="Toggle Dark Theme">
+          <input id="themeToggle" type="checkbox" checked>
+          <span>Dark</span>
+        </label>
+        <label class="checkbox-label" title="Keep Awake: Prevent OLED screen dimming & register activity">
+          <input id="awakeToggle" type="checkbox" checked>
+          <span>Awake</span>
+        </label>
+      </div>
+    </div>
+
+    <button id="markReadBtn" class="btn-accent" title="Save Progress">Save</button>
+  </div>
+
+  <div id="progressTrack" class="no-drag" title="Click or drag to jump to position">
+    <div id="progressBar" class="no-drag"></div>
+  </div>
+
+  <main id="readerContainer">
+    <div id="loadingSpinner" class="spinner-overlay" style="display: none;">
+      <div class="spinner"></div>
+    </div>
+
+    <div id="readerContent" class="reader-paper">
+      <div id="chapterHeader">
+        <h1 id="chapterTitle">Loading...</h1>
+        <div id="chapterSub" class="chapter-sub"></div>
+      </div>
+      <article id="chapterContent"></article>
+
+      <div class="chapter-footer-nav">
+        <button id="prevBtnBottom" class="nav-btn">← Previous Chapter</button>
+        <button id="nextBtnBottom" class="nav-btn primary">Next Chapter →</button>
+      </div>
+    </div>
+  </main>
+
+  <footer class="bottom-bar">
+    <button id="prevBtn" class="icon-nav-btn" title="Previous Chapter (Left Arrow)">← Prev</button>
+
+    <div class="reading-status">
+      <span id="statusChapter">Chapter --</span>
+      <span id="statusPercent" class="percent-badge">0%</span>
+    </div>
+
+    <button id="nextBtn" class="icon-nav-btn" title="Next Chapter (Right Arrow)">Next →</button>
+  </footer>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
