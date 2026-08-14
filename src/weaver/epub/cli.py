@@ -34,6 +34,10 @@ def build_novel(selected: dict, *, volume_count: int | None = None, force: str |
     chapters.sort(key=lambda ch: ch.get("chapter_number", 0))
     print(f"Found {len(chapters)} chapters for '{novel_title}' by {author}")
 
+    numbers = [ch.get("chapter_number", 0) for ch in chapters]
+    if len(numbers) != len(set(numbers)):
+        print("[!] Warning: duplicate chapter numbers detected; some EPUB item names may collide.")
+
     volumes = resolve_volumes(output_dir, novel_slug, len(chapters), volume_count=volume_count, force=force)
     metadata = {**metadata, "volumes": volumes}
 
@@ -98,6 +102,9 @@ def _parse_args(argv) -> tuple[list[str], int | None, str | None]:
             except ValueError:
                 print(f"Invalid --volumes value: {argv[i + 1]!r}")
                 sys.exit(1)
+            if volume_count < 1:
+                print(f"--volumes must be a positive integer, got {volume_count!r}")
+                sys.exit(1)
             i += 2
         elif arg == "--flat":
             force = "flat"
@@ -158,9 +165,12 @@ def main():
     if len(novels) > 1:
         print(f"[{len(novels) + 1}] Build All Novels")
 
+    build_all_keys = {"all", "a"}
+    if len(novels) > 1:
+        build_all_keys.add(str(len(novels) + 1))
     choice = input(f"\nSelect an option (1-{len(novels) + 1 if len(novels) > 1 else 1}) [default 1]: ").strip().lower()
 
-    if choice in ("all", "a", str(len(novels) + 1)) and len(novels) > 1:
+    if choice in build_all_keys:
         for nov in novels:
             build_novel(nov, volume_count=volume_count, force=force)
         return

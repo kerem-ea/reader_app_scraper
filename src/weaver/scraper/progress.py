@@ -109,7 +109,14 @@ def compile_json(temp_jsonl: Path, out_json: Path) -> None:
     if not results:
         return
 
-    keys = sorted(results, key=lambda k: int(k.split("-")[1]))
+    def _chapter_sort_key(key: str) -> tuple[float, str]:
+        try:
+            return (float(int(key.split("-")[1])), key)
+        except (ValueError, IndexError):
+            logger.warning("Skipping non-chapter key in %s: %s", temp_jsonl, key)
+            return (float("inf"), key)
+
+    keys = sorted(results, key=_chapter_sort_key)
     output = {key: results[key] for key in keys}
 
     with open(out_json, "w", encoding="utf-8") as f:

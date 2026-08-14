@@ -18,6 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let chapters = [], current = 1, currentSite = null
   let cachedProgress = null
+  let chapterRequestSeq = 0
 
   function applySettings() {
     contentEl.style.fontSize = fontSize.value + 'px'
@@ -271,6 +272,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function loadChapters(site, resumeChapter) {
     currentSite = site
+    chapterRequestSeq++  // drop any in-flight chapter loads from the previous site
     loadingSpinner.style.display = 'flex'
     try {
       chapters = await (await fetch(`/api/chapters?site=${encodeURIComponent(site)}`)).json()
@@ -315,10 +317,12 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function loadChapter(num) {
+    const seq = ++chapterRequestSeq
     loadingSpinner.style.display = 'flex'
     readerContainer.scrollTop = 0
     try {
       const ch = await (await fetch(`/api/chapter?site=${encodeURIComponent(currentSite)}&num=${num}`)).json()
+      if (seq !== chapterRequestSeq) return  // stale response from a newer request; ignore
       titleEl.textContent = ch.title || `Chapter ${ch.number}`
       const cleanBookName = currentSite.split('/').pop().replace(/\.epub$/i, '').toUpperCase()
       subEl.textContent = `${cleanBookName} • CHAPTER ${ch.number}`
@@ -329,12 +333,15 @@ document.addEventListener('DOMContentLoaded', () => {
       saveProgress(currentSite, current)
       updateNavButtons()
     } catch (e) {
+      if (seq !== chapterRequestSeq) return
       console.error(e)
       titleEl.textContent = `Error Loading Chapter ${num}`
       contentEl.textContent = 'Failed to fetch chapter text from EPUB.'
     } finally {
-      loadingSpinner.style.display = 'none'
-      readerContainer.onscroll()
+      if (seq === chapterRequestSeq) {
+        loadingSpinner.style.display = 'none'
+        readerContainer.onscroll()
+      }
     }
   }
 

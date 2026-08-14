@@ -55,6 +55,11 @@ def get_screen_bounds(win, include_taskbar=False):
             mi = MONITORINFO()
             mi.cbSize = ctypes.sizeof(MONITORINFO)
 
+            user32 = ctypes.windll.user32
+            user32.MonitorFromPoint.argtypes = [wintypes.POINT, wintypes.DWORD]
+            user32.MonitorFromPoint.restype = wintypes.HMONITOR
+            user32.GetMonitorInfoW.argtypes = [wintypes.HMONITOR, ctypes.POINTER(MONITORINFO)]
+
             cx, cy = 0, 0
             if win and getattr(win, 'x', None) is not None and getattr(win, 'width', None) is not None:
                 cx = win.x + win.width // 2
@@ -64,8 +69,8 @@ def get_screen_bounds(win, include_taskbar=False):
                 cy = scr.y + scr.height // 2
 
             pt = wintypes.POINT(cx, cy)
-            hMon = ctypes.windll.user32.MonitorFromPoint(pt, 1)
-            if hMon and ctypes.windll.user32.GetMonitorInfoW(hMon, ctypes.byref(mi)):
+            hMon = user32.MonitorFromPoint(pt, 1)
+            if hMon and user32.GetMonitorInfoW(hMon, ctypes.byref(mi)):
                 full_w = mi.rcMonitor.right - mi.rcMonitor.left
                 full_h = mi.rcMonitor.bottom - mi.rcMonitor.top
                 wx = mi.rcMonitor.left

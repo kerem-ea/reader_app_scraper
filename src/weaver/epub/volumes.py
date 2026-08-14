@@ -33,7 +33,9 @@ def auto_volumes(
     if chapter_count <= 0:
         return []
 
-    if volume_count:
+    if volume_count is not None:
+        if volume_count < 1:
+            raise ValueError("volume_count must be at least 1")
         count = max(MIN_VOLUMES, min(volume_count, chapter_count, MAX_VOLUMES))
     else:
         cps = chapters_per_volume or DEFAULT_CHAPTERS_PER_VOLUME
@@ -72,7 +74,7 @@ def resolve_volumes(
         return stored
 
     volumes = auto_volumes(chapter_count, volume_count=volume_count)
-    if volumes and not stored:
+    if volumes and (not stored or force == "auto"):
         _persist_volumes(output_dir, volumes)
     return volumes
 

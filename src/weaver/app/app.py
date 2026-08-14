@@ -29,7 +29,7 @@ def main():
         port = get_free_port()
 
     def start_flask():
-        app.run(debug=False, use_reloader=False, host='127.0.0.1', port=port)
+        app.run(debug=False, use_reloader=False, host='127.0.0.1', port=port, threaded=True)
 
     flask_thread = threading.Thread(target=start_flask, daemon=True)
     flask_thread.start()

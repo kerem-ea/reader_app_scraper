@@ -1,11 +1,15 @@
 import json
 import logging
 import os
+import threading
 
 from .._common import get_progress_file
 from .paths import HERE, ensure_progress_dir
 
 logger = logging.getLogger(__name__)
+
+# Serializes read-modify-write cycles on the progress file.
+_LOCK = threading.Lock()
 
 
 # Read the old single-novel last_read.txt format if it still exists.
@@ -78,11 +82,12 @@ def get_novel_last_read(site: str) -> int | None:
 def save_novel_last_read(site: str, chapter: int) -> None:
     if not site or chapter is None:
         return
-    data = get_all_progress()
-    novels = data.setdefault("novels", {})
-    novels[site] = {"chapter": chapter}
-    data["last_site"] = site
-    save_all_progress(data)
+    with _LOCK:
+        data = get_all_progress()
+        novels = data.setdefault("novels", {})
+        novels[site] = {"chapter": chapter}
+        data["last_site"] = site
+        save_all_progress(data)
 
 
 # Summary of the most recent novel + all novel progress.

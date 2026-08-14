@@ -1,5 +1,7 @@
 import json
 
+import pytest
+
 from weaver.epub.volumes import auto_volumes, resolve_volumes
 
 
@@ -67,3 +69,21 @@ def test_resolve_volumes_auto_regenerates_over_stored(tmp_path):
     )
     vols = resolve_volumes(novel, "novel", 100, force="auto", volume_count=5)
     assert len(vols) == 5
+
+
+def test_resolve_volumes_auto_persists_over_stored(tmp_path):
+    novel = tmp_path / "novel"
+    novel.mkdir()
+    (novel / "metadata.json").write_text(
+        json.dumps({"volumes": [{"number": 1, "title": "A", "start": 1, "end": 10}]}),
+        encoding="utf-8",
+    )
+    vols = resolve_volumes(novel, "novel", 100, force="auto", volume_count=5)
+    assert len(vols) == 5
+    persisted = json.loads((novel / "metadata.json").read_text(encoding="utf-8"))
+    assert len(persisted["volumes"]) == 5
+
+
+def test_auto_volumes_rejects_non_positive_count():
+    with pytest.raises(ValueError):
+        auto_volumes(100, volume_count=0)

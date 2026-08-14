@@ -163,12 +163,20 @@ async def run_browser_mode(
             if existing_page is not None and not getattr(existing_page, "is_closed", lambda: False)():
                 return existing_page
 
-            context = await browser.new_context()
-            page = await context.new_page()
-            await page.goto(paths.NOVEL_URL, wait_until="domcontentloaded", timeout=REQUEST_TIMEOUT * 1000)
-            await page.wait_for_timeout(random.randint(180, 320))
-            await wait_for_challenge_clear(page, timeout=30, extra_wait_on_timeout=1500)
-            return page
+            last_exc = None
+            for attempt in range(1, 4):
+                try:
+                    context = await browser.new_context()
+                    page = await context.new_page()
+                    await page.goto(paths.NOVEL_URL, wait_until="domcontentloaded", timeout=REQUEST_TIMEOUT * 1000)
+                    await page.wait_for_timeout(random.randint(180, 320))
+                    await wait_for_challenge_clear(page, timeout=30, extra_wait_on_timeout=1500)
+                    return page
+                except Exception as exc:
+                    last_exc = exc
+                    print(f"[browser] prepare_page failed ({attempt}/3): {type(exc).__name__}: {exc}")
+                    await asyncio.sleep(2 * attempt)
+            raise last_exc
 
         for _ in range(page_count):
             page = await prepare_page()

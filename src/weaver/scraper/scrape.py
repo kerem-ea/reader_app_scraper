@@ -32,6 +32,12 @@ def collect_inputs() -> tuple[SiteConfig, str, int, int, str]:
         start_chapter = int(sys.argv[2].strip())
         end_chapter = int(sys.argv[3].strip())
         mode_choice = sys.argv[4].strip()
+        if start_chapter < 1:
+            raise ValueError("Start chapter must be at least 1.")
+        if end_chapter < start_chapter:
+            raise ValueError("End chapter must be >= start chapter.")
+        if mode_choice not in ("1", "2", "3"):
+            raise ValueError(f"Invalid mode '{mode_choice}'. Choose 1, 2, or 3.")
         site_config, novel_name = SiteRegistry.get(novel_input)
         return site_config, novel_name, start_chapter, end_chapter, mode_choice
 
@@ -136,6 +142,7 @@ async def run() -> None:
                 ]
                 print()
                 print(f"MODE 2: RETRYING {len(retry_queue)} FAILED")
+                stats["failed"] = 0  # browser retries re-count only its own failures
                 await run_browser_mode(
                     retry_queue,
                     writer,

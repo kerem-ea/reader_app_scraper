@@ -63,3 +63,17 @@ def test_compile_json_empty_input_creates_nothing(tmp_path):
     out = tmp_path / "out.json"
     compile_json(p, out)
     assert not out.exists()
+
+
+def test_compile_json_tolerates_malformed_id(tmp_path):
+    p = tmp_path / "p.jsonl"
+    p.write_text(
+        '{"id":"chapter-2","status":"success","text":"b"}\n'
+        '{"id":"weird-key","status":"success","text":"x"}\n'
+        '{"id":"chapter-1","status":"success","text":"a"}\n',
+        encoding="utf-8",
+    )
+    out = tmp_path / "out.json"
+    compile_json(p, out)
+    data = json.loads(out.read_text(encoding="utf-8"))
+    assert list(data.keys()) == ["chapter-1", "chapter-2", "weird-key"]

@@ -86,7 +86,7 @@ def parse_epub_info(file_path):
         if abs_path in _EPUB_INFO_CACHE:
             cached_mtime, cached_title, cached_chapters = _EPUB_INFO_CACHE[abs_path]
             if cached_mtime == current_mtime:
-                return cached_title, cached_chapters
+                return cached_title, list(cached_chapters)
     except Exception:
         current_mtime = 0.0
 
@@ -204,7 +204,7 @@ def parse_epub_info(file_path):
                 chap_num += 1
 
             _EPUB_INFO_CACHE[abs_path] = (current_mtime, title, chapters)
-            return title, chapters
+            return title, list(chapters)
     except Exception as e:
         logger.debug("Could not parse EPUB %s: %s", file_path, e)
         fallback_title = Path(file_path).stem
