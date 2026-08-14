@@ -1,5 +1,5 @@
-# Allow `python -m weaver` to act as the scraper CLI.
-from .scraper import main as scraper_main
+# Allow `python -m weaver` to act as the top-level CLI dispatcher.
+from .cli import main
 
 if __name__ == "__main__":
-    scraper_main()
+    main()

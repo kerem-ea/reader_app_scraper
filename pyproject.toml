@@ -32,7 +32,7 @@ dev = [
 ]
 
 [project.scripts]
-weaver = "weaver.scraper:main"
+weaver = "weaver.cli:main"
 weaver-scraper = "weaver.scraper:main"
 weaver-epub = "weaver.epub:main"
 weaver-app = "weaver.app:main"

@@ -12,6 +12,14 @@ pip install weaver-reader
 
 This installs four command-line tools: `weaver`, `weaver-scraper`, `weaver-epub` and `weaver-app`.
 
+`weaver` is the umbrella command. Run `weaver --help` to list the tools, or dispatch directly:
+
+```powershell
+weaver scraper ...   # same as weaver-scraper ...
+weaver epub ...      # same as weaver-epub ...
+weaver app ...       # same as weaver-app ...
+```
+
 ### From source (for development)
 
 ```powershell
