@@ -1,7 +1,7 @@
 import logging
 import os
 import re
-import sys
+import time
 import zipfile
 import xml.etree.ElementTree as ET
 from html import unescape
@@ -29,31 +29,44 @@ def _novel_key(full_path: str, current_root: str) -> str:
     return Path(full_path).stem
 
 
-# Find every non-volume EPUB under the data/search roots, keyed by novel slug.
+def _scan_epubs(search_dir: str, current_root: str, found: dict) -> None:
+    """Collect non-volume EPUBs from one directory tree into ``found``."""
+    if not os.path.isdir(search_dir):
+        return
+    for root, _, files in os.walk(search_dir):
+        for file in files:
+            if file.lower().endswith('.epub'):
+                if re.search(r'\b(volume|vol)\b', file.lower()):
+                    continue
+                full_path = os.path.abspath(os.path.join(root, file))
+                key = _novel_key(full_path, current_root)
+                if key and key not in found:
+                    found[key] = full_path
+
+
+_FIND_CACHE = {}
+_FIND_CACHE_TTL = 2.0  # seconds; the reader navigates chapters faster than this
+
+
+# Find every non-volume EPUB under the data root, keyed by novel slug.
+# Results are cached briefly so per-request calls during reading don't
+# re-walk the filesystem. Legacy/source layouts are scanned only when the
+# canonical data root yields nothing (so a launch from e.g. C:\Windows never
+# triggers a full-disk recursive walk).
 def find_all_epub_files():
     current_root = find_data_root()
-    search_dirs = [
-        current_root,
-        HERE,
-        os.getcwd(),
-    ]
-    if not getattr(sys, 'frozen', False):
-        search_dirs.append(os.path.abspath(os.path.join(HERE, '..', '..', '..')))
+    now = time.monotonic()
+    cached = _FIND_CACHE.get(current_root)
+    if cached is not None and now - cached[0] < _FIND_CACHE_TTL:
+        return cached[1]
 
     found = {}
-    for d in search_dirs:
-        if not os.path.isdir(d):
-            continue
-        for root, _, files in os.walk(d):
-            for file in files:
-                if file.lower().endswith('.epub'):
-                    if re.search(r'\b(volume|vol)\b', file.lower()):
-                        continue
-                    full_path = os.path.abspath(os.path.join(root, file))
-                    key = _novel_key(full_path, current_root)
-                    if key and key not in found:
-                        found[key] = full_path
+    _scan_epubs(current_root, current_root, found)
+    if not found:
+        for d in (HERE, os.getcwd()):
+            _scan_epubs(d, current_root, found)
 
+    _FIND_CACHE[current_root] = (now, found)
     return found
 
 
