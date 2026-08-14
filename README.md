@@ -63,6 +63,8 @@ Modes:
 - `2` — browser-only
 - `3` — slow HTTP, then browser retry for failures
 
+All commands (`weaver`, `weaver-scraper`, `weaver-epub`, `weaver-app`) support `--version` and `--help`.
+
 Scraped raw JSON, cover images and progress are saved to the per-user data directory `%APPDATA%\weaver-reader\data\<novel-slug>\` on Windows.
 
 > First time using the scraper? The Camoufox browser binaries may need to be fetched: `camoufox fetch`.

@@ -1,4 +1,5 @@
 import socket
+import sys
 import time
 import threading
 import webview
@@ -6,6 +7,14 @@ from .routes import app
 from .keep_awake import keep_awake_mgr
 from .window_manager import get_free_port
 from .api import Api
+from .._common import get_version
+
+USAGE = """Usage:
+  weaver-app                              Launch the desktop reader
+  weaver-app --version                   Print the version and exit
+  weaver-app --help                      Show this help
+"""
+
 
 # Start the Flask server + pywebview desktop window.
 def _wait_for_server(port: int, timeout: float = 10.0) -> None:
@@ -20,6 +29,19 @@ def _wait_for_server(port: int, timeout: float = 10.0) -> None:
 
 
 def main():
+    args = sys.argv[1:]
+    if args:
+        arg = args[0].strip().lower()
+        if arg in ("-h", "--help"):
+            print(USAGE)
+            return
+        if arg in ("-V", "--version"):
+            print(f"weaver-app {get_version()}")
+            return
+        print(f"unknown option {arg}", file=sys.stderr)
+        print("Try `weaver-app --help' for more information.", file=sys.stderr)
+        sys.exit(2)
+
     port = 5000
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

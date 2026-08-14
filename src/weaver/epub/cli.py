@@ -2,11 +2,22 @@ import json
 import sys
 from pathlib import Path
 
+from .._common import get_version
 from .constants import get_novel_metadata
 from .cover import prepare_cover
 from .builder import create_full_book, create_volume_book
 from .finder import find_scraped_novels
 from .volumes import resolve_volumes
+
+USAGE = """Usage:
+  weaver-epub                              Interactive menu of scraped novels
+  weaver-epub <novel-slug | all>           Build one novel or all of them
+  weaver-epub --volumes N                  Auto-split each novel into N volumes
+  weaver-epub --flat                       Build a single flat EPUB
+  weaver-epub --auto                       Regenerate stored volumes
+  weaver-epub --version                    Print the version and exit
+  weaver-epub --help                       Show this help
+"""
 
 
 # Convert one novel's scraped JSON into full + per-volume EPUBs.
@@ -120,24 +131,28 @@ def _parse_args(argv) -> tuple[list[str], int | None, str | None]:
 
 # CLI entry: build by slug / "all" / interactive menu.
 def main():
+    args, volume_count, force = _parse_args(sys.argv[1:])
+
+    # Global flags are handled before touching the data directory, so help and
+    # version work even when nothing has been scraped yet.
+    if args:
+        arg = args[0].strip().lower()
+        if arg in ("-h", "--help"):
+            print(USAGE)
+            return
+        if arg in ("-V", "--version"):
+            print(f"weaver-epub {get_version()}")
+            return
+
     novels = find_scraped_novels()
     if not novels:
         print("No scraped novel data found in data/ directory.")
         print("Please run the scraper first (weaver-scraper).")
         return
 
-    args, volume_count, force = _parse_args(sys.argv[1:])
-
     # Check CLI arguments
     if args:
         arg = args[0].strip().lower()
-        if arg in ("-h", "--help"):
-            print("Usage: weaver-epub [novel-slug | all] [--volumes N] [--flat] [--auto]")
-            print()
-            print("  --volumes N   Auto-split the novel into N volumes")
-            print("  --flat        Build a single flat EPUB (ignore stored volumes)")
-            print("  --auto        Regenerate stored volumes from the chapter count")
-            return
         if arg in ("all", "--all", "-a"):
             print(f"Building EPUBs for all {len(novels)} novels...\n")
             for nov in novels:

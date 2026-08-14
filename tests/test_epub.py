@@ -2,6 +2,7 @@ import re
 import sys
 
 from weaver.epub.builder import _epub_identifier
+from weaver.epub.cli import main as epub_main
 from weaver.epub.constants import get_base_dir, get_novel_metadata, sanitize_filename
 
 
@@ -42,3 +43,23 @@ def test_epub_identifier_is_stable_urn():
 
 def test_epub_identifier_differs_per_slug():
     assert _epub_identifier("shadow-slave") != _epub_identifier("another-novel")
+
+
+def test_epub_main_prints_version(monkeypatch, capsys):
+    monkeypatch.setattr(sys, "argv", ["weaver-epub", "--version"])
+    epub_main()
+    assert capsys.readouterr().out.startswith("weaver-epub ")
+
+
+def test_epub_main_prints_usage_on_help(monkeypatch, capsys):
+    monkeypatch.setattr(sys, "argv", ["weaver-epub", "--help"])
+    epub_main()
+    assert "Usage:" in capsys.readouterr().out
+
+
+def test_epub_main_prints_usage_on_help_with_no_data(monkeypatch, tmp_path, capsys):
+    monkeypatch.setattr(sys, "argv", ["weaver-epub", "--help"])
+    monkeypatch.setenv("APPDATA", str(tmp_path))
+    monkeypatch.setattr(sys, "platform", "win32")
+    epub_main()
+    assert "Usage:" in capsys.readouterr().out
