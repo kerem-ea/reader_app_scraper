@@ -98,6 +98,21 @@ async def run() -> None:
     print(f"Folder: {paths.OUT_JSON.parent}")
     print()
 
+    done = load_done(paths.TEMP_JSONL)
+
+    queue = [
+        (chapter_number, paths.CHAPTER_URL_TMPL.format(chapter_number))
+        for chapter_number in range(start_chapter, end_chapter + 1)
+        if f"chapter-{chapter_number}" not in done
+    ]
+
+    if not queue:
+        print("Nothing left to download.")
+        compile_json(paths.TEMP_JSONL, paths.OUT_JSON)
+        return
+
+    print(f"Remaining: {len(queue)}")
+
     print("Fetching novel cover...")
     try:
         cover_success = download_novel_cover(
@@ -114,20 +129,6 @@ async def run() -> None:
         print(f"Error downloading cover: {e}")
 
     chapter_titles = await get_chapter_titles(site_config=site_config)
-    done = load_done(paths.TEMP_JSONL)
-
-    queue = [
-        (chapter_number, paths.CHAPTER_URL_TMPL.format(chapter_number))
-        for chapter_number in range(start_chapter, end_chapter + 1)
-        if f"chapter-{chapter_number}" not in done
-    ]
-
-    if not queue:
-        print("Nothing left to download.")
-        compile_json(paths.TEMP_JSONL, paths.OUT_JSON)
-        return
-
-    print(f"Remaining: {len(queue)}")
 
     writer = ProgressWriter(paths.TEMP_JSONL)
     stats = {"done": 0, "failed": 0, "t0": time.time(), "failed_chapters": set()}
